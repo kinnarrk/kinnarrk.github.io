@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H3 Hexagon Selector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #controls {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #controls h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #212529;
+        }
+
+        #controls p {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .control-separator {
+            height: 30px;
+            width: 1px;
+            background: #dee2e6;
+            margin: 0 5px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100px;
+        }
+
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 250px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        /* Style Google Places Autocomplete dropdown */
+        .pac-container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            border-radius: 6px;
+            margin-top: 2px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #dee2e6;
+        }
+
+        .pac-item {
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .pac-item:first-child {
+            border-top: none;
+        }
+
+        .pac-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .pac-item-selected {
+            background-color: #e7f3ff;
+        }
+
+        .pac-icon {
+            margin-right: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.clear {
+            background: #dc3545;
+        }
+
+        button.clear:hover {
+            background: #bd2130;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        #selected-hexagons {
+            padding: 15px 20px;
+            background: white;
+            border-top: 2px solid #dee2e6;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #selected-hexagons h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #212529;
+            flex-shrink: 0;
+        }
+
+        #zones-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #hexagon-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .hexagon-id {
+            padding: 6px 12px;
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #0056b3;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .hexagon-id:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        #count {
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        #zoom-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #zoom-warning h3 {
+            margin: 0 0 10px 0;
+            color: #dc3545;
+            font-size: 18px;
+        }
+
+        #zoom-warning p {
+            margin: 0;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .map-layers {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .layer-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .layer-toggle label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .zone-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .zone-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 3px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: white;
+            position: relative;
+        }
+
+        .zone-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .zone-button.active {
+            border-color: #212529;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        .zone-button.active::before {
+            content: '✓ ';
+            font-size: 16px;
+        }
+
+        .zone-button.zone-1 {
+            background: #007bff;
+        }
+
+        .zone-button.zone-1:hover {
+            background: #0056b3;
+        }
+
+        .zone-button.zone-2 {
+            background: #28a745;
+        }
+
+        .zone-button.zone-2:hover {
+            background: #1e7e34;
+        }
+
+        .zone-button.zone-3 {
+            background: #fd7e14;
+        }
+
+        .zone-button.zone-3:hover {
+            background: #e8590c;
+        }
+
+        .zone-section {
+            padding: 12px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .zone-section h3 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            padding-bottom: 6px;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+
+        .zone-section.zone-1 {
+            border: 2px solid #007bff;
+        }
+
+        .zone-section.zone-1 h3 {
+            color: #007bff;
+        }
+
+        .zone-section.zone-2 {
+            border: 2px solid #28a745;
+        }
+
+        .zone-section.zone-2 h3 {
+            color: #28a745;
+        }
+
+        .zone-section.zone-3 {
+            border: 2px solid #fd7e14;
+        }
+
+        .zone-section.zone-3 h3 {
+            color: #fd7e14;
+        }
+
+        .zone-section .hexagon-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .zone-section .hexagon-list .hexagon-id {
+            background: white;
+            width: 100%;
+            text-align: center;
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .zone-section.zone-1 .hexagon-id {
+            border-color: #007bff;
+            color: #0056b3;
+        }
+
+        .zone-section.zone-1 .hexagon-id:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        .zone-section.zone-2 .hexagon-id {
+            border-color: #28a745;
+            color: #1e7e34;
+        }
+
+        .zone-section.zone-2 .hexagon-id:hover {
+            background: #28a745;
+            color: white;
+        }
+
+        .zone-section.zone-3 .hexagon-id {
+            border-color: #fd7e14;
+            color: #dc6502;
+        }
+
+        .zone-section.zone-3 .hexagon-id:hover {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .zone-section .zone-empty {
+            text-align: center;
+            color: #6c757d;
+            font-size: 12px;
+            padding: 15px 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>H3 Hexagon Selector</h1>
+        <p>Select a zone below, then <strong>click</strong> hexagons to toggle them in that zone. Hold <strong>Ctrl</strong> (or <strong>Cmd</strong> on Mac) and <strong>drag</strong> to select multiple hexagons at once.</p>
+        <div class="control-row">
+            <label for="resolution">H3 Resolution:</label>
+            <input type="number" id="resolution" min="0" max="15" value="8">
+            <button onclick="updateHexagons()">Redraw Hexagons</button>
+            <button class="clear" onclick="clearAllZones()">Clear All Zones</button>
+            <div class="control-separator"></div>
+            <label for="location-search">Search Location:</label>
+            <input type="text" id="location-search" placeholder="Start typing to search...">
+            <button onclick="searchLocation()">Go</button>
+        </div>
+        <div class="map-layers">
+            <strong style="color: #212529; margin-right: 10px;">Map Overlays:</strong>
+            <div class="layer-toggle">
+                <input type="checkbox" id="transit-layer" onchange="toggleLayer('transit')">
+                <label for="transit-layer">Transit Routes</label>
+            </div>
+            <div class="layer-toggle">
+                <input type="checkbox" id="poi-layer" checked onchange="toggleLayer('poi')">
+                <label for="poi-layer">POI (Hotels, Airports, etc.)</label>
+            </div>
+        </div>
+        <div class="zone-buttons">
+            <button class="zone-button zone-1 active" onclick="setActiveZone(1)">Zone 1 (Blue)</button>
+            <button class="zone-button zone-2" onclick="setActiveZone(2)">Zone 2 (Green)</button>
+            <button class="zone-button zone-3" onclick="setActiveZone(3)">Zone 3 (Orange)</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    <div id="zoom-warning">
+        <h3>⚠️ Zoom In Required</h3>
+        <p>Zoom in to level 11 or higher to see hexagons.<br>Too many hexagons at this zoom level.</p>
+    </div>
+
+    <div id="selected-hexagons">
+        <h2>Selected Hexagon IDs by Zone</h2>
+        <div id="zones-container">
+            <div id="zone-1-section" class="zone-section zone-1">
+                <h3>Zone 1 (Blue)<br><span class="zone-count" id="zone-1-count">0</span> hexagons</h3>
+                <div id="zone-1-list" class="hexagon-list"></div>
+                <div class="zone-empty" id="zone-1-empty">No hexagons in this zone</div>
+            </div>
+            <div id="zone-2-section" class="zone-section zone-2">
+                <h3>Zone 2 (Green)<br><span class="zone-count" id="zone-2-count">0</span> hexagons</h3>
+                <div id="zone-2-list" class="hexagon-list"></div>
+                <div class="zone-empty" id="zone-2-empty">No hexagons in this zone</div>
+            </div>
+            <div id="zone-3-section" class="zone-section zone-3">
+                <h3>Zone 3 (Orange)<br><span class="zone-count" id="zone-3-count">0</span> hexagons</h3>
+                <div id="zone-3-list" class="hexagon-list"></div>
+                <div class="zone-empty" id="zone-3-empty">No hexagons in this zone</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load H3 library -->
+    <script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+    
+    <!-- Load Google Maps with Places library for autocomplete -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYfjK5lAAP96uG_eIUR0m2lbWf3D69VPg&libraries=places&callback=initMap" async defer></script>
+
+    <script>
+        let map;
+        let hexagons = new Map(); // Store hexagon polygons by H3 index
+        let hexagonZones = new Map(); // Store zone assignment for each H3 index
+        let currentResolution = 8;
+        let activeZone = 1; // Currently selected zone (1, 2, or 3)
+        
+        // Drag selection state
+        let isDragging = false;
+        let draggedHexagons = new Set(); // Track hexagons already processed in current drag
+        let ctrlPressed = false; // Track if Ctrl/Cmd key is pressed
+
+        // Map layers
+        let transitLayer = null;
+
+        // Zone color definitions
+        const zoneColors = {
+            1: { stroke: '#007bff', fill: '#007bff', name: 'Blue' },
+            2: { stroke: '#28a745', fill: '#28a745', name: 'Green' },
+            3: { stroke: '#fd7e14', fill: '#fd7e14', name: 'Orange' }
+        };
+
+        // Handle Google Maps loading errors
+        function gm_authFailure() {
+            showApiKeyError();
+        }
+
+        function showApiKeyError() {
+            const mapDiv = document.getElementById('map');
+            mapDiv.innerHTML = `
+                <div style="padding: 40px; text-align: center; background: #fff3cd; height: 100%;">
+                    <h2 style="color: #856404; margin-bottom: 20px;">⚠️ Google Maps API Key Required</h2>
+                    <div style="max-width: 600px; margin: 0 auto; text-align: left; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3 style="margin-top: 0;">Follow these steps to get your API key:</h3>
+                        <ol style="line-height: 2;">
+                            <li>Go to <a href="https://console.cloud.google.com/" target="_blank" style="color: #007bff;">Google Cloud Console</a></li>
+                            <li>Create a new project or select an existing one</li>
+                            <li>Enable the <strong>"Maps JavaScript API"</strong></li>
+                            <li>Go to <strong>APIs & Services → Credentials</strong></li>
+                            <li>Click <strong>"Create Credentials"</strong> → <strong>"API Key"</strong></li>
+                            <li>Copy your new API key</li>
+                            <li>Open <code>index.html</code> in a text editor</li>
+                            <li>Find line 156 and replace <code>YOUR_API_KEY_HERE</code> with your actual API key</li>
+                            <li>Save the file and refresh this page</li>
+                        </ol>
+                        <p style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-left: 4px solid #007bff; color: #004085;">
+                            <strong>Note:</strong> Google Maps requires a valid API key. For testing purposes, you may need to enable billing in your Google Cloud account, but Google provides $200 free credit per month.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initMap() {
+            // Check if the API key has been updated
+            if (document.querySelector('script[src*="YOUR_API_KEY_HERE"]')) {
+                showApiKeyError();
+                return;
+            }
+
+            // Initialize map centered on San Francisco
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 37.7749, lng: -122.4194 },
+                zoom: 13,
+                mapTypeId: 'roadmap'
+            });
+
+            // Add listeners to redraw hexagons when map changes
+            map.addListener('idle', updateHexagons);
+            map.addListener('zoom_changed', () => {
+                // Redraw when zoom completes
+                google.maps.event.addListenerOnce(map, 'idle', updateHexagons);
+            });
+
+            // Initialize map layers
+            initLayers();
+
+            // Initialize autocomplete for location search
+            initAutocomplete();
+
+            // Draw initial hexagons
+            updateHexagons();
+        }
+
+        function initLayers() {
+            // Initialize transit layer (don't add to map yet)
+            transitLayer = new google.maps.TransitLayer();
+            
+            // POI is enabled by default in Google Maps, no action needed
+        }
+
+        function toggleLayer(layerType) {
+            switch(layerType) {
+                case 'transit':
+                    const transitCheckbox = document.getElementById('transit-layer');
+                    if (transitCheckbox.checked) {
+                        transitLayer.setMap(map);
+                    } else {
+                        transitLayer.setMap(null);
+                    }
+                    break;
+                    
+                case 'poi':
+                    const poiCheckbox = document.getElementById('poi-layer');
+                    // Toggle POI visibility via map styles
+                    if (poiCheckbox.checked) {
+                        map.setOptions({
+                            styles: [] // Default styles (POI visible)
+                        });
+                    } else {
+                        map.setOptions({
+                            styles: [{
+                                featureType: 'poi',
+                                stylers: [{ visibility: 'off' }]
+                            }]
+                        });
+                    }
+                    break;
+            }
+        }
+
+        function initAutocomplete() {
+            const searchInput = document.getElementById('location-search');
+            
+            // Create autocomplete object
+            const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                fields: ['geometry', 'name', 'formatted_address']
+            });
+
+            // When user selects a place from autocomplete
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+
+                if (!place.geometry || !place.geometry.location) {
+                    alert('No details available for: ' + place.name);
+                    return;
+                }
+
+                // Center map on the selected place and zoom to level 13
+                map.setCenter(place.geometry.location);
+                map.setZoom(13);
+            });
+        }
+
+        function updateHexagons() {
+            // Check zoom level - don't draw if zoomed out too far (causes performance issues)
+            const currentZoom = map.getZoom();
+            const minZoom = 11; // Don't draw if zoom is less than 11 (2 levels below default of 13)
+            const zoomWarning = document.getElementById('zoom-warning');
+            
+            if (currentZoom < minZoom) {
+                // Clear existing hexagons and show warning
+                hexagons.forEach(polygon => polygon.setMap(null));
+                hexagons.clear();
+                zoomWarning.style.display = 'block';
+                return;
+            }
+
+            // Hide warning and clear existing hexagons
+            zoomWarning.style.display = 'none';
+            hexagons.forEach(polygon => polygon.setMap(null));
+            hexagons.clear();
+
+            // Get resolution from input
+            currentResolution = parseInt(document.getElementById('resolution').value);
+
+            // Get map bounds
+            const bounds = map.getBounds();
+            if (!bounds) {
+                setTimeout(updateHexagons, 100);
+                return;
+            }
+
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+
+            // Get H3 indices for the visible area
+            const h3Indices = getH3IndicesInBounds(
+                sw.lat(), sw.lng(),
+                ne.lat(), ne.lng(),
+                currentResolution
+            );
+
+            // Draw each hexagon
+            h3Indices.forEach(h3Index => {
+                drawHexagon(h3Index);
+            });
+        }
+
+        function getH3IndicesInBounds(minLat, minLng, maxLat, maxLng, resolution) {
+            // Create a polygon from the bounds (clockwise order)
+            const boundingBox = [
+                [
+                    [minLng, minLat],  // SW
+                    [maxLng, minLat],  // SE
+                    [maxLng, maxLat],  // NE
+                    [minLng, maxLat],  // NW
+                    [minLng, minLat]   // Close the loop
+                ]
+            ];
+
+            try {
+                // Use H3's polygonToCells for complete coverage
+                const h3Indices = h3.polygonToCells(boundingBox, resolution, true);
+                return h3Indices;
+            } catch (error) {
+                console.error('Error getting H3 cells:', error);
+                // Fallback to denser sampling if polygonToCells fails
+                return getDenseH3IndicesInBounds(minLat, minLng, maxLat, maxLng, resolution);
+            }
+        }
+
+        function getDenseH3IndicesInBounds(minLat, minLng, maxLat, maxLng, resolution) {
+            const indices = new Set();
+            
+            // Use much denser sampling to ensure coverage
+            const gridSize = 50; // Increased from 20
+            const latStep = (maxLat - minLat) / gridSize;
+            const lngStep = (maxLng - minLng) / gridSize;
+
+            for (let lat = minLat; lat <= maxLat; lat += latStep) {
+                for (let lng = minLng; lng <= maxLng; lng += lngStep) {
+                    const h3Index = h3.latLngToCell(lat, lng, resolution);
+                    indices.add(h3Index);
+                    
+                    // Add neighbors to ensure complete coverage
+                    const neighbors = h3.gridDisk(h3Index, 2);
+                    neighbors.forEach(n => indices.add(n));
+                }
+            }
+
+            return Array.from(indices);
+        }
+
+        function setActiveZone(zoneNumber) {
+            activeZone = zoneNumber;
+            
+            // Update button active state
+            document.querySelectorAll('.zone-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.zone-button.zone-${zoneNumber}`).classList.add('active');
+        }
+
+        function searchLocation() {
+            const searchInput = document.getElementById('location-search');
+            const query = searchInput.value.trim();
+            
+            if (!query) {
+                alert('Please enter a location to search');
+                return;
+            }
+
+            // Use Google Maps Geocoding API as fallback when Go button is clicked
+            const geocoder = new google.maps.Geocoder();
+            
+            geocoder.geocode({ address: query }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    // Center map on the result
+                    map.setCenter(results[0].geometry.location);
+                    
+                    // Set zoom to level 13
+                    map.setZoom(13);
+                } else {
+                    alert('Location not found. Please try a different search term or select from the autocomplete suggestions.');
+                }
+            });
+        }
+
+        function drawHexagon(h3Index) {
+            // Get boundary coordinates
+            const boundary = h3.cellToBoundary(h3Index);
+            
+            // Convert to Google Maps LatLng format
+            const paths = boundary.map(coord => ({
+                lat: coord[0],
+                lng: coord[1]
+            }));
+
+            // Determine if this hexagon is assigned to a zone
+            const assignedZone = hexagonZones.get(h3Index);
+            const isSelected = assignedZone !== undefined;
+
+            // Get colors based on zone or use default (lighter red for unselected)
+            let strokeColor = '#FFAAAA'; // Light pink/red
+            let fillColor = '#FFAAAA'; // Light pink/red
+            let strokeWeight = 2;
+            let fillOpacity = 0.1;
+
+            if (isSelected) {
+                const zoneColor = zoneColors[assignedZone];
+                strokeColor = zoneColor.stroke;
+                fillColor = zoneColor.fill;
+                strokeWeight = 3;
+                fillOpacity = 0.35;
+            }
+
+            // Create polygon
+            const polygon = new google.maps.Polygon({
+                paths: paths,
+                strokeColor: strokeColor,
+                strokeOpacity: 0.7,
+                strokeWeight: strokeWeight,
+                fillColor: fillColor,
+                fillOpacity: fillOpacity,
+                map: map,
+                clickable: true
+            });
+
+            // Add click listener for single selection (works without Ctrl/Cmd)
+            polygon.addListener('click', (e) => {
+                if (!isDragging) {
+                    selectHexagon(h3Index, polygon);
+                }
+            });
+
+            // Add mousedown listener to start drag selection (only with Ctrl/Cmd)
+            polygon.addListener('mousedown', (e) => {
+                if (ctrlPressed || e.domEvent.ctrlKey || e.domEvent.metaKey) {
+                    isDragging = true;
+                    draggedHexagons.clear();
+                    selectHexagon(h3Index, polygon);
+                    // Disable map dragging during selection
+                    map.setOptions({ draggable: false });
+                    e.domEvent.preventDefault();
+                    e.domEvent.stopPropagation();
+                }
+            });
+
+            // Add mouseover listener for drag selection
+            polygon.addListener('mouseover', () => {
+                if (isDragging && !draggedHexagons.has(h3Index)) {
+                    selectHexagon(h3Index, polygon);
+                }
+            });
+
+            // Store reference
+            hexagons.set(h3Index, polygon);
+        }
+
+        // Global mouseup listener to stop drag selection
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                draggedHexagons.clear();
+                // Re-enable map dragging
+                if (map) {
+                    map.setOptions({ draggable: true });
+                }
+            }
+        });
+
+        // Track Ctrl/Cmd key state
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                ctrlPressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (!e.ctrlKey && !e.metaKey) {
+                ctrlPressed = false;
+            }
+        });
+
+        function selectHexagon(h3Index, polygon) {
+            // Mark as processed in current drag
+            draggedHexagons.add(h3Index);
+            
+            const currentZone = hexagonZones.get(h3Index);
+            
+            // Toggle behavior: if already in active zone, deselect; otherwise assign
+            if (currentZone === activeZone) {
+                // Deselect - remove from zone
+                hexagonZones.delete(h3Index);
+                polygon.setOptions({
+                    strokeColor: '#FFAAAA',
+                    strokeWeight: 2,
+                    fillColor: '#FFAAAA',
+                    fillOpacity: 0.1,
+                    strokeOpacity: 0.7
+                });
+            } else {
+                // Select - assign to active zone
+                hexagonZones.set(h3Index, activeZone);
+                const zoneColor = zoneColors[activeZone];
+                polygon.setOptions({
+                    strokeColor: zoneColor.stroke,
+                    strokeWeight: 3,
+                    fillColor: zoneColor.fill,
+                    fillOpacity: 0.35,
+                    strokeOpacity: 0.8
+                });
+            }
+            updateSelectedList();
+        }
+
+        function toggleHexagonSelection(h3Index, polygon) {
+            const currentZone = hexagonZones.get(h3Index);
+            
+            if (currentZone === activeZone) {
+                // Clicking same zone - deselect
+                hexagonZones.delete(h3Index);
+                polygon.setOptions({
+                    strokeColor: '#FFAAAA',
+                    strokeWeight: 2,
+                    fillColor: '#FFAAAA',
+                    fillOpacity: 0.1,
+                    strokeOpacity: 0.7
+                });
+            } else {
+                // Assign to active zone (or reassign if already in different zone)
+                hexagonZones.set(h3Index, activeZone);
+                const zoneColor = zoneColors[activeZone];
+                polygon.setOptions({
+                    strokeColor: zoneColor.stroke,
+                    strokeWeight: 3,
+                    fillColor: zoneColor.fill,
+                    fillOpacity: 0.35,
+                    strokeOpacity: 0.8
+                });
+            }
+
+            updateSelectedList();
+        }
+
+        function updateSelectedList() {
+            // Group hexagons by zone
+            const zoneHexagons = { 1: [], 2: [], 3: [] };
+            
+            hexagonZones.forEach((zone, h3Index) => {
+                zoneHexagons[zone].push(h3Index);
+            });
+
+            // Update each zone section
+            [1, 2, 3].forEach(zoneNum => {
+                const list = document.getElementById(`zone-${zoneNum}-list`);
+                const countSpan = document.getElementById(`zone-${zoneNum}-count`);
+                const emptyMsg = document.getElementById(`zone-${zoneNum}-empty`);
+                
+                const hexagonsInZone = zoneHexagons[zoneNum].sort();
+                
+                if (hexagonsInZone.length > 0) {
+                    countSpan.textContent = hexagonsInZone.length;
+                    list.style.display = 'flex';
+                    emptyMsg.style.display = 'none';
+                    
+                    // Clear and populate list
+                    list.innerHTML = '';
+                    hexagonsInZone.forEach(h3Index => {
+                        const div = document.createElement('div');
+                        div.className = 'hexagon-id';
+                        div.textContent = h3Index;
+                        div.title = 'Click to copy';
+                        div.onclick = () => {
+                            navigator.clipboard.writeText(h3Index);
+                            const originalText = div.textContent;
+                            div.textContent = 'Copied!';
+                            setTimeout(() => {
+                                div.textContent = originalText;
+                            }, 1000);
+                        };
+                        list.appendChild(div);
+                    });
+                } else {
+                    countSpan.textContent = '0';
+                    list.style.display = 'none';
+                    emptyMsg.style.display = 'block';
+                }
+            });
+        }
+
+        function clearAllZones() {
+            // Clear all zone assignments
+            hexagonZones.forEach((zone, h3Index) => {
+                const polygon = hexagons.get(h3Index);
+                if (polygon) {
+                    polygon.setOptions({
+                        strokeColor: '#FFAAAA',
+                        strokeWeight: 2,
+                        fillColor: '#FFAAAA',
+                        fillOpacity: 0.1,
+                        strokeOpacity: 0.7
+                    });
+                }
+            });
+
+            hexagonZones.clear();
+            updateSelectedList();
+        }
+    </script>
+</body>
+</html>
+
