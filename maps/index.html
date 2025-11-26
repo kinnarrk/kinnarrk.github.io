@@ -548,43 +548,12 @@
             }
         }
 
-        /* Long press selection mode indicator */
-        #longpress-indicator {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 123, 255, 0.95);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 2000;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            pointer-events: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        @media (max-width: 768px) {
-            #longpress-indicator {
-                font-size: 12px;
-                padding: 10px 20px;
-                top: 10px;
-            }
-        }
     </style>
 </head>
 <body>
     <div id="controls">
         <h1>H3 Hexagon Selector</h1>
-        <p>Select a zone below, then <strong>tap/click</strong> hexagons to toggle them. <strong>Desktop:</strong> Hold Ctrl/Cmd and drag to select multiple. <strong>Mobile:</strong> Long press to enter multi-select mode.</p>
+        <p>Select a zone below, then <strong>tap/click</strong> hexagons to toggle them. <strong>Desktop:</strong> Hold Ctrl/Cmd and drag to select multiple. <strong>Mobile:</strong> Drag across hexagons to select multiple, or drag the map background to move it.</p>
         <div class="control-row">
             <label for="resolution">H3 Resolution:</label>
             <input type="number" id="resolution" min="0" max="15" value="8">
@@ -617,9 +586,6 @@
     <div id="zoom-warning">
         <h3>⚠️ Zoom In Required</h3>
         <p>Zoom in to level 11 or higher to see hexagons.<br>Too many hexagons at this zoom level.</p>
-    </div>
-    <div id="longpress-indicator">
-        🎨 Multi-Select Mode Active - Tap hexagons to toggle
     </div>
 
     <div id="selected-hexagons">
@@ -660,9 +626,8 @@
         let isDragging = false;
         let draggedHexagons = new Set(); // Track hexagons already processed in current drag
         let ctrlPressed = false; // Track if Ctrl/Cmd key is pressed
-        let longPressActive = false; // Track if long press selection mode is active
-        let longPressTimer = null; // Timer for long press detection
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let touchStarted = false; // Track if touch has started for mobile drag
 
         // Map layers
         let transitLayer = null;
@@ -716,7 +681,8 @@
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 37.7749, lng: -122.4194 },
                 zoom: 13,
-                mapTypeId: 'roadmap'
+                mapTypeId: 'roadmap',
+                gestureHandling: isMobile ? 'greedy' : 'auto'
             });
 
             // Add listeners to redraw hexagons when map changes
@@ -968,7 +934,7 @@
                 }
             });
 
-            // Add mousedown listener to start drag selection (only with Ctrl/Cmd)
+            // Desktop: Add mousedown listener to start drag selection (only with Ctrl/Cmd)
             polygon.addListener('mousedown', (e) => {
                 if (ctrlPressed || e.domEvent.ctrlKey || e.domEvent.metaKey) {
                     isDragging = true;
@@ -981,74 +947,31 @@
                 }
             });
 
-            // Add mouseover listener for drag selection
+            // Add mouseover listener for drag selection (desktop and mobile)
             polygon.addListener('mouseover', () => {
                 if (isDragging && !draggedHexagons.has(h3Index)) {
                     selectHexagon(h3Index, polygon);
                 }
             });
 
-            // Mobile: Add long press functionality
+            // Mobile: Single-finger drag selects hexagons, two-finger can still pan
             if (isMobile) {
-                // Long press to activate multi-select mode
-                google.maps.event.addDomListener(polygon, 'touchstart', (e) => {
-                    longPressTimer = setTimeout(() => {
-                        // Activate long press mode
-                        longPressActive = true;
+                polygon.addListener('touchstart', (e) => {
+                    // Only handle single touch - disable map dragging for hexagon selection
+                    if (e.touches && e.touches.length === 1) {
+                        touchStarted = true;
                         isDragging = true;
                         draggedHexagons.clear();
-                        map.setOptions({ draggable: false });
-                        
-                        // Show indicator
-                        document.getElementById('longpress-indicator').style.display = 'block';
-                        
-                        // Select the hexagon
                         selectHexagon(h3Index, polygon);
-                        
-                        // Add haptic feedback if available
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
-                        }
-                    }, 500); // 500ms long press
-                });
-
-                google.maps.event.addDomListener(polygon, 'touchend', (e) => {
-                    // Cancel long press timer if touch ends before 500ms
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                    
-                    // If long press mode was active, deactivate it
-                    if (longPressActive) {
-                        longPressActive = false;
-                        isDragging = false;
-                        map.setOptions({ draggable: true });
-                        document.getElementById('longpress-indicator').style.display = 'none';
+                        map.setOptions({ draggable: false }); // Temporarily disable map drag
                     }
                 });
 
-                google.maps.event.addDomListener(polygon, 'touchcancel', (e) => {
-                    // Cancel everything on touch cancel
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                    longPressActive = false;
+                polygon.addListener('touchend', (e) => {
+                    touchStarted = false;
                     isDragging = false;
-                    map.setOptions({ draggable: true });
-                    document.getElementById('longpress-indicator').style.display = 'none';
-                });
-
-                // Handle touch move for drag selection in long press mode
-                google.maps.event.addDomListener(polygon, 'touchmove', (e) => {
-                    if (longPressActive) {
-                        // Cancel timer if user starts moving
-                        if (longPressTimer) {
-                            clearTimeout(longPressTimer);
-                            longPressTimer = null;
-                        }
-                    }
+                    draggedHexagons.clear();
+                    map.setOptions({ draggable: true }); // Re-enable map drag
                 });
             }
 
