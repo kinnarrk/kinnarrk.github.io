@@ -211,7 +211,7 @@
 <body>
     <div class="container">
         <h1>🗺️ Map Image Generation Comparison</h1>
-        <div class="subtitle">H3 Source → Google Maps (Playwright) → Apple Maps • Complete Visual Comparison</div>
+        <div class="subtitle">H3 Source → Playwright → Java2D • Complete Visual Comparison</div>
         
         <!-- Single Polygon Comparison -->
         <div class="section">
@@ -259,40 +259,40 @@
                     <div class="metrics">
                         <div class="metric-row">
                             <span class="metric-label">⏱️ Generation Time</span>
-                            <span class="metric-value">1451 ms</span>
+                            <span class="metric-value">1482 ms</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">💾 File Size</span>
-                            <span class="metric-value">687 KB</span>
+                            <span class="metric-value">697 KB</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">🧠 Memory Used</span>
-                            <span class="metric-value">6 MB</span>
+                            <span class="metric-value">-32 MB</span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Apple Maps -->
+                <!-- Java2D -->
                 <div class="image-card">
                     <div class="image-header">
-                        🍎 Apple Maps
-                        <span class="badge badge-info">MapKit JS</span>
+                        🎨 Java2D
+                        <span class="badge badge-info">Static Maps + Overlay</span>
                     </div>
                     <div class="image-wrapper">
-                        <img src="Single_AppleMaps_applemaps.png" alt="Apple Maps Single Polygon">
+                        <img src="Single_Java2D_java2d.png" alt="Java2D Single Polygon">
                     </div>
                     <div class="metrics">
                         <div class="metric-row">
                             <span class="metric-label">⏱️ Generation Time</span>
-                            <span class="metric-value">2501 ms</span>
+                            <span class="metric-value">644 ms</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">💾 File Size</span>
-                            <span class="metric-value">1021 KB</span>
+                            <span class="metric-value">472 KB</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">🧠 Memory Used</span>
-                            <span class="metric-value">11 MB</span>
+                            <span class="metric-value">24 MB</span>
                         </div>
                     </div>
                 </div>
@@ -345,11 +345,11 @@
                     <div class="metrics">
                         <div class="metric-row">
                             <span class="metric-label">⏱️ Generation Time</span>
-                            <span class="metric-value">1435 ms</span>
+                            <span class="metric-value">1475 ms</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">💾 File Size</span>
-                            <span class="metric-value">1235 KB</span>
+                            <span class="metric-value">1242 KB</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">🧠 Memory Used</span>
@@ -358,27 +358,27 @@
                     </div>
                 </div>
                 
-                <!-- Apple Maps -->
+                <!-- Java2D -->
                 <div class="image-card">
                     <div class="image-header">
-                        🍎 Apple Maps
-                        <span class="badge badge-info">MapKit JS (Dark Mode)</span>
+                        🎨 Java2D
+                        <span class="badge badge-info">Zoom +1</span>
                     </div>
                     <div class="image-wrapper">
-                        <img src="Multi_AppleMaps_applemaps.png" alt="Apple Maps Multi-Polygon (Dark Mode)">
+                        <img src="Multi_Java2D_java2d.png" alt="Java2D Multi-Polygon">
                     </div>
                     <div class="metrics">
                         <div class="metric-row">
                             <span class="metric-label">⏱️ Generation Time</span>
-                            <span class="metric-value">2491 ms</span>
+                            <span class="metric-value">714 ms</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">💾 File Size</span>
-                            <span class="metric-value">1367 KB</span>
+                            <span class="metric-value">589 KB</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">🧠 Memory Used</span>
-                            <span class="metric-value">14 MB</span>
+                            <span class="metric-value">23 MB</span>
                         </div>
                     </div>
                 </div>
@@ -396,18 +396,18 @@
                 </div>
                 <div class="summary-card">
                     <h3>Average Generation Time</h3>
-                    <div class="value">⚡ 1443 ms</div>
+                    <div class="value">⚡ 1478 ms</div>
                     <div style="margin-top: 10px; font-size: 0.9rem;">Playwright</div>
                 </div>
                 <div class="summary-card">
                     <h3>Average Generation Time</h3>
-                    <div class="value">🍎 2496 ms</div>
-                    <div style="margin-top: 10px; font-size: 0.9rem;">Apple Maps</div>
+                    <div class="value">🎨 679 ms</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">Java2D</div>
                 </div>
                 <div class="summary-card">
-                    <h3>Speed Comparison</h3>
-                    <div class="value">72% faster</div>
-                    <div style="margin-top: 10px; font-size: 0.9rem;">vs Google Maps</div>
+                    <h3>Speed Improvement</h3>
+                    <div class="value">117%</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">Java2D Faster</div>
                 </div>
             </div>
         </div>
