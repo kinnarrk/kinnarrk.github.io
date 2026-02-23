@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Image Generation Comparison - H3 Source vs Playwright vs Java2D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .image-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .image-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .image-header.source {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .image-wrapper {
+            position: relative;
+            background: #f5f5f5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+        
+        .image-wrapper img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .metrics {
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 600;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .metric-value {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-winner {
+            background: #10b981;
+            color: white;
+        }
+        
+        .badge-info {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .badge-source {
+            background: #f5576c;
+            color: white;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .summary-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 1400px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Map Image Generation Comparison</h1>
+        <div class="subtitle">H3 Source → Google Maps (Playwright) → Apple Maps • Complete Visual Comparison</div>
+        
+        <!-- Single Polygon Comparison -->
+        <div class="section">
+            <h2 class="section-title">
+                🔷 Single Polygon Comparison
+                <span class="badge badge-info">7 Hexagons</span>
+            </h2>
+            <p class="section-subtitle">Compact cluster of 7 H3 hexagons forming a single connected polygon</p>
+            
+            <div class="comparison-grid">
+                <!-- H3 Source Map -->
+                <div class="image-card">
+                    <div class="image-header source">
+                        🎯 H3 Source
+                        <span class="badge badge-source">Interactive</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <div id="map-single" class="map-container"></div>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">🔢 H3 Count</span>
+                            <span class="metric-value">7 hexagons</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">📐 Polygons</span>
+                            <span class="metric-value">1 polygon</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🔍 Resolution</span>
+                            <span class="metric-value">H3 Level 9</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Playwright -->
+                <div class="image-card">
+                    <div class="image-header">
+                        ⚡ Playwright
+                        <span class="badge badge-info">Persistent Browser</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Single_Playwright_playwright.png" alt="Playwright Single Polygon">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">1631 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">855 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">13 MB</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Apple Maps -->
+                <div class="image-card">
+                    <div class="image-header">
+                        🍎 Apple Maps
+                        <span class="badge badge-info">MapKit JS</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Single_AppleMaps_applemaps.png" alt="Apple Maps Single Polygon">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">2564 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">817 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">15 MB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Multi-Polygon Comparison -->
+        <div class="section">
+            <h2 class="section-title">
+                🔶 Multi-Polygon Comparison
+                <span class="badge badge-info">14 Hexagons → 3 Regions</span>
+            </h2>
+            <p class="section-subtitle">14 H3 hexagons forming 3 separate disconnected polygons</p>
+            
+            <div class="comparison-grid">
+                <!-- H3 Source Map -->
+                <div class="image-card">
+                    <div class="image-header source">
+                        🎯 H3 Source
+                        <span class="badge badge-source">Interactive</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <div id="map-multi" class="map-container"></div>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">🔢 H3 Count</span>
+                            <span class="metric-value">14 hexagons</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">📐 Polygons</span>
+                            <span class="metric-value">3 polygons</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🔍 Resolution</span>
+                            <span class="metric-value">H3 Level 9</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Playwright -->
+                <div class="image-card">
+                    <div class="image-header">
+                        ⚡ Google Maps
+                        <span class="badge badge-info">Dark Mode</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Multi_Playwright_playwright.png" alt="Google Maps Multi-Polygon (Dark Mode)">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">1619 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">1182 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">-30 MB</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Apple Maps -->
+                <div class="image-card">
+                    <div class="image-header">
+                        🍎 Apple Maps
+                        <span class="badge badge-info">MapKit JS (Dark Mode)</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Multi_AppleMaps_applemaps.png" alt="Apple Maps Multi-Polygon (Dark Mode)">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">2304 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">1340 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">14 MB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Large Region Comparison -->
+        <div class="section">
+            <h2 class="section-title">
+                🌎 Large Region Comparison
+                <span class="badge badge-info">2401 Hexagons • 7 Res-6 Parents</span>
+            </h2>
+            <p class="section-subtitle">Resolution-9 children of 7 resolution-6 cells covering a wide area — tests zoom-out rendering at scale</p>
+            
+            <div class="comparison-grid">
+                <!-- H3 Source Map -->
+                <div class="image-card">
+                    <div class="image-header source">
+                        🎯 H3 Source
+                        <span class="badge badge-source">Interactive</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <div id="map-large" class="map-container"></div>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">🔢 H3 Count</span>
+                            <span class="metric-value">2401 hexagons</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">📐 Parent resolution</span>
+                            <span class="metric-value">H3 Level 6</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🔍 Child resolution</span>
+                            <span class="metric-value">H3 Level 9</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Playwright -->
+                <div class="image-card">
+                    <div class="image-header">
+                        ⚡ Google Maps
+                        <span class="badge badge-info">Light Mode</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Large_Playwright_playwright.png" alt="Google Maps Large Region">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">1776 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">1238 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">7 MB</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Apple Maps -->
+                <div class="image-card">
+                    <div class="image-header">
+                        🍎 Apple Maps
+                        <span class="badge badge-info">MapKit JS (Light Mode)</span>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="Large_AppleMaps_applemaps.png" alt="Apple Maps Large Region">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">2595 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value">1310 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">11 MB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- JPEG Compact Image Comparison -->
+        <div class="section">
+            <h2 class="section-title">
+                🖼️ JPEG Compact Images (12:5 Aspect Ratio)
+                <span class="badge badge-info">1200×500 supersampled • Target &lt;100 KB</span>
+            </h2>
+            <p class="section-subtitle">Same large-region data as above. Captured at 2400×1000 (retina), bicubic-downsampled to 1200×500 JPEG — 2× supersampling for sharp imagery and small file size. No H3 source column — same hexagons as the Large Region section.</p>
+            
+            <div class="comparison-grid" style="grid-template-columns: 1fr 1fr;">
+                <!-- Google Maps JPEG -->
+                <div class="image-card">
+                    <div class="image-header">
+                        ⚡ Google Maps
+                        <span class="badge badge-info">JPEG • Light Mode</span>
+                    </div>
+                    <div class="image-wrapper" style="min-height: auto; padding: 10px;">
+                        <img src="Large_Playwright_JPEG_playwright.jpg" alt="Google Maps Large Region JPEG" style="width: 100%; height: auto;">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">1888 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value" style="color: #10b981;">142 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">15 MB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">📐 Dimensions</span>
+                            <span class="metric-value">1200 × 500 (supersampled from 2400×1000)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Apple Maps JPEG -->
+                <div class="image-card">
+                    <div class="image-header">
+                        🍎 Apple Maps
+                        <span class="badge badge-info">JPEG • MapKit JS</span>
+                    </div>
+                    <div class="image-wrapper" style="min-height: auto; padding: 10px;">
+                        <img src="Large_AppleMaps_JPEG_applemaps.jpg" alt="Apple Maps Large Region JPEG" style="width: 100%; height: auto;">
+                    </div>
+                    <div class="metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">⏱️ Generation Time</span>
+                            <span class="metric-value">2826 ms</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">💾 File Size</span>
+                            <span class="metric-value" style="color: #10b981;">140 KB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">🧠 Memory Used</span>
+                            <span class="metric-value">25 MB</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">📐 Dimensions</span>
+                            <span class="metric-value">1200 × 500 (supersampled from 2400×1000)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Summary -->
+        <div class="section">
+            <h2 class="section-title">📊 Performance Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>H3 Source</h3>
+                    <div class="value">🎯 Interactive</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">Real-time rendering</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Average Generation Time</h3>
+                    <div class="value">⚡ 1625 ms</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">Playwright</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Average Generation Time</h3>
+                    <div class="value">🍎 2434 ms</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">Apple Maps</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Speed Comparison</h3>
+                    <div class="value">49% faster</div>
+                    <div style="margin-top: 10px; font-size: 0.9rem;">vs Google Maps</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load h3-js library - using a version that works in browsers -->
+    <!-- Reference: http://kinnarrk.github.io/maps/index.html -->
+    <script src="https://unpkg.com/h3-js@4.1.0"></script>
+    
+    <!-- Define initMaps BEFORE loading Google Maps API -->
+    <script>
+        // H3 IDs for both test cases
+        const singleH3Ids = ["89283082a23ffff","89283082a27ffff","89283082a33ffff","89283082a37ffff","89283082aafffff","89283082bcbffff","89283082bdbffff"];
+        const multiH3Ids = ["8929a1d6223ffff","8929a1d6233ffff","8929a1d623bffff","8929a1d6243ffff","8929a1d6247ffff","8929a1d624bffff","8929a1d624fffff","8929a1d6213ffff","8929a1d6283ffff","8929a1d628bffff","8929a1d628fffff","8929a1d629bffff","8929a1d62c7ffff","8929a1d62d7ffff"];
+        const largeH3Ids = ["8929a1d0803ffff","8929a1d0807ffff","8929a1d080bffff","8929a1d080fffff","8929a1d0813ffff","8929a1d0817ffff","8929a1d081bffff","8929a1d0823ffff","8929a1d0827ffff","8929a1d082bffff","8929a1d082fffff","8929a1d0833ffff","8929a1d0837ffff","8929a1d083bffff","8929a1d0843ffff","8929a1d0847ffff","8929a1d084bffff","8929a1d084fffff","8929a1d0853ffff","8929a1d0857ffff","8929a1d085bffff","8929a1d0863ffff","8929a1d0867ffff","8929a1d086bffff","8929a1d086fffff","8929a1d0873ffff","8929a1d0877ffff","8929a1d087bffff","8929a1d0883ffff","8929a1d0887ffff","8929a1d088bffff","8929a1d088fffff","8929a1d0893ffff","8929a1d0897ffff","8929a1d089bffff","8929a1d08a3ffff","8929a1d08a7ffff","8929a1d08abffff","8929a1d08afffff","8929a1d08b3ffff","8929a1d08b7ffff","8929a1d08bbffff","8929a1d08c3ffff","8929a1d08c7ffff","8929a1d08cbffff","8929a1d08cfffff","8929a1d08d3ffff","8929a1d08d7ffff","8929a1d08dbffff","8929a1d0903ffff","8929a1d0907ffff","8929a1d090bffff","8929a1d090fffff","8929a1d0913ffff","8929a1d0917ffff","8929a1d091bffff","8929a1d0923ffff","8929a1d0927ffff","8929a1d092bffff","8929a1d092fffff","8929a1d0933ffff","8929a1d0937ffff","8929a1d093bffff","8929a1d0943ffff","8929a1d0947ffff","8929a1d094bffff","8929a1d094fffff","8929a1d0953ffff","8929a1d0957ffff","8929a1d095bffff","8929a1d0963ffff","8929a1d0967ffff","8929a1d096bffff","8929a1d096fffff","8929a1d0973ffff","8929a1d0977ffff","8929a1d097bffff","8929a1d0983ffff","8929a1d0987ffff","8929a1d098bffff","8929a1d098fffff","8929a1d0993ffff","8929a1d0997ffff","8929a1d099bffff","8929a1d09a3ffff","8929a1d09a7ffff","8929a1d09abffff","8929a1d09afffff","8929a1d09b3ffff","8929a1d09b7ffff","8929a1d09bbffff","8929a1d09c3ffff","8929a1d09c7ffff","8929a1d09cbffff","8929a1d09cfffff","8929a1d09d3ffff","8929a1d09d7ffff","8929a1d09dbffff","8929a1d0a03ffff","8929a1d0a07ffff","8929a1d0a0bffff","8929a1d0a0fffff","8929a1d0a13ffff","8929a1d0a17ffff","8929a1d0a1bffff","8929a1d0a23ffff","8929a1d0a27ffff","8929a1d0a2bffff","8929a1d0a2fffff","8929a1d0a33ffff","8929a1d0a37ffff","8929a1d0a3bffff","8929a1d0a43ffff","8929a1d0a47ffff","8929a1d0a4bffff","8929a1d0a4fffff","8929a1d0a53ffff","8929a1d0a57ffff","8929a1d0a5bffff","8929a1d0a63ffff","8929a1d0a67ffff","8929a1d0a6bffff","8929a1d0a6fffff","8929a1d0a73ffff","8929a1d0a77ffff","8929a1d0a7bffff","8929a1d0a83ffff","8929a1d0a87ffff","8929a1d0a8bffff","8929a1d0a8fffff","8929a1d0a93ffff","8929a1d0a97ffff","8929a1d0a9bffff","8929a1d0aa3ffff","8929a1d0aa7ffff","8929a1d0aabffff","8929a1d0aafffff","8929a1d0ab3ffff","8929a1d0ab7ffff","8929a1d0abbffff","8929a1d0ac3ffff","8929a1d0ac7ffff","8929a1d0acbffff","8929a1d0acfffff","8929a1d0ad3ffff","8929a1d0ad7ffff","8929a1d0adbffff","8929a1d0b03ffff","8929a1d0b07ffff","8929a1d0b0bffff","8929a1d0b0fffff","8929a1d0b13ffff","8929a1d0b17ffff","8929a1d0b1bffff","8929a1d0b23ffff","8929a1d0b27ffff","8929a1d0b2bffff","8929a1d0b2fffff","8929a1d0b33ffff","8929a1d0b37ffff","8929a1d0b3bffff","8929a1d0b43ffff","8929a1d0b47ffff","8929a1d0b4bffff","8929a1d0b4fffff","8929a1d0b53ffff","8929a1d0b57ffff","8929a1d0b5bffff","8929a1d0b63ffff","8929a1d0b67ffff","8929a1d0b6bffff","8929a1d0b6fffff","8929a1d0b73ffff","8929a1d0b77ffff","8929a1d0b7bffff","8929a1d0b83ffff","8929a1d0b87ffff","8929a1d0b8bffff","8929a1d0b8fffff","8929a1d0b93ffff","8929a1d0b97ffff","8929a1d0b9bffff","8929a1d0ba3ffff","8929a1d0ba7ffff","8929a1d0babffff","8929a1d0bafffff","8929a1d0bb3ffff","8929a1d0bb7ffff","8929a1d0bbbffff","8929a1d0bc3ffff","8929a1d0bc7ffff","8929a1d0bcbffff","8929a1d0bcfffff","8929a1d0bd3ffff","8929a1d0bd7ffff","8929a1d0bdbffff","8929a1d0c03ffff","8929a1d0c07ffff","8929a1d0c0bffff","8929a1d0c0fffff","8929a1d0c13ffff","8929a1d0c17ffff","8929a1d0c1bffff","8929a1d0c23ffff","8929a1d0c27ffff","8929a1d0c2bffff","8929a1d0c2fffff","8929a1d0c33ffff","8929a1d0c37ffff","8929a1d0c3bffff","8929a1d0c43ffff","8929a1d0c47ffff","8929a1d0c4bffff","8929a1d0c4fffff","8929a1d0c53ffff","8929a1d0c57ffff","8929a1d0c5bffff","8929a1d0c63ffff","8929a1d0c67ffff","8929a1d0c6bffff","8929a1d0c6fffff","8929a1d0c73ffff","8929a1d0c77ffff","8929a1d0c7bffff","8929a1d0c83ffff","8929a1d0c87ffff","8929a1d0c8bffff","8929a1d0c8fffff","8929a1d0c93ffff","8929a1d0c97ffff","8929a1d0c9bffff","8929a1d0ca3ffff","8929a1d0ca7ffff","8929a1d0cabffff","8929a1d0cafffff","8929a1d0cb3ffff","8929a1d0cb7ffff","8929a1d0cbbffff","8929a1d0cc3ffff","8929a1d0cc7ffff","8929a1d0ccbffff","8929a1d0ccfffff","8929a1d0cd3ffff","8929a1d0cd7ffff","8929a1d0cdbffff","8929a1d0d03ffff","8929a1d0d07ffff","8929a1d0d0bffff","8929a1d0d0fffff","8929a1d0d13ffff","8929a1d0d17ffff","8929a1d0d1bffff","8929a1d0d23ffff","8929a1d0d27ffff","8929a1d0d2bffff","8929a1d0d2fffff","8929a1d0d33ffff","8929a1d0d37ffff","8929a1d0d3bffff","8929a1d0d43ffff","8929a1d0d47ffff","8929a1d0d4bffff","8929a1d0d4fffff","8929a1d0d53ffff","8929a1d0d57ffff","8929a1d0d5bffff","8929a1d0d63ffff","8929a1d0d67ffff","8929a1d0d6bffff","8929a1d0d6fffff","8929a1d0d73ffff","8929a1d0d77ffff","8929a1d0d7bffff","8929a1d0d83ffff","8929a1d0d87ffff","8929a1d0d8bffff","8929a1d0d8fffff","8929a1d0d93ffff","8929a1d0d97ffff","8929a1d0d9bffff","8929a1d0da3ffff","8929a1d0da7ffff","8929a1d0dabffff","8929a1d0dafffff","8929a1d0db3ffff","8929a1d0db7ffff","8929a1d0dbbffff","8929a1d0dc3ffff","8929a1d0dc7ffff","8929a1d0dcbffff","8929a1d0dcfffff","8929a1d0dd3ffff","8929a1d0dd7ffff","8929a1d0ddbffff","8929a1d0e03ffff","8929a1d0e07ffff","8929a1d0e0bffff","8929a1d0e0fffff","8929a1d0e13ffff","8929a1d0e17ffff","8929a1d0e1bffff","8929a1d0e23ffff","8929a1d0e27ffff","8929a1d0e2bffff","8929a1d0e2fffff","8929a1d0e33ffff","8929a1d0e37ffff","8929a1d0e3bffff","8929a1d0e43ffff","8929a1d0e47ffff","8929a1d0e4bffff","8929a1d0e4fffff","8929a1d0e53ffff","8929a1d0e57ffff","8929a1d0e5bffff","8929a1d0e63ffff","8929a1d0e67ffff","8929a1d0e6bffff","8929a1d0e6fffff","8929a1d0e73ffff","8929a1d0e77ffff","8929a1d0e7bffff","8929a1d0e83ffff","8929a1d0e87ffff","8929a1d0e8bffff","8929a1d0e8fffff","8929a1d0e93ffff","8929a1d0e97ffff","8929a1d0e9bffff","8929a1d0ea3ffff","8929a1d0ea7ffff","8929a1d0eabffff","8929a1d0eafffff","8929a1d0eb3ffff","8929a1d0eb7ffff","8929a1d0ebbffff","8929a1d0ec3ffff","8929a1d0ec7ffff","8929a1d0ecbffff","8929a1d0ecfffff","8929a1d0ed3ffff","8929a1d0ed7ffff","8929a1d0edbffff","8929a1d2803ffff","8929a1d2807ffff","8929a1d280bffff","8929a1d280fffff","8929a1d2813ffff","8929a1d2817ffff","8929a1d281bffff","8929a1d2823ffff","8929a1d2827ffff","8929a1d282bffff","8929a1d282fffff","8929a1d2833ffff","8929a1d2837ffff","8929a1d283bffff","8929a1d2843ffff","8929a1d2847ffff","8929a1d284bffff","8929a1d284fffff","8929a1d2853ffff","8929a1d2857ffff","8929a1d285bffff","8929a1d2863ffff","8929a1d2867ffff","8929a1d286bffff","8929a1d286fffff","8929a1d2873ffff","8929a1d2877ffff","8929a1d287bffff","8929a1d2883ffff","8929a1d2887ffff","8929a1d288bffff","8929a1d288fffff","8929a1d2893ffff","8929a1d2897ffff","8929a1d289bffff","8929a1d28a3ffff","8929a1d28a7ffff","8929a1d28abffff","8929a1d28afffff","8929a1d28b3ffff","8929a1d28b7ffff","8929a1d28bbffff","8929a1d28c3ffff","8929a1d28c7ffff","8929a1d28cbffff","8929a1d28cfffff","8929a1d28d3ffff","8929a1d28d7ffff","8929a1d28dbffff","8929a1d2903ffff","8929a1d2907ffff","8929a1d290bffff","8929a1d290fffff","8929a1d2913ffff","8929a1d2917ffff","8929a1d291bffff","8929a1d2923ffff","8929a1d2927ffff","8929a1d292bffff","8929a1d292fffff","8929a1d2933ffff","8929a1d2937ffff","8929a1d293bffff","8929a1d2943ffff","8929a1d2947ffff","8929a1d294bffff","8929a1d294fffff","8929a1d2953ffff","8929a1d2957ffff","8929a1d295bffff","8929a1d2963ffff","8929a1d2967ffff","8929a1d296bffff","8929a1d296fffff","8929a1d2973ffff","8929a1d2977ffff","8929a1d297bffff","8929a1d2983ffff","8929a1d2987ffff","8929a1d298bffff","8929a1d298fffff","8929a1d2993ffff","8929a1d2997ffff","8929a1d299bffff","8929a1d29a3ffff","8929a1d29a7ffff","8929a1d29abffff","8929a1d29afffff","8929a1d29b3ffff","8929a1d29b7ffff","8929a1d29bbffff","8929a1d29c3ffff","8929a1d29c7ffff","8929a1d29cbffff","8929a1d29cfffff","8929a1d29d3ffff","8929a1d29d7ffff","8929a1d29dbffff","8929a1d2a03ffff","8929a1d2a07ffff","8929a1d2a0bffff","8929a1d2a0fffff","8929a1d2a13ffff","8929a1d2a17ffff","8929a1d2a1bffff","8929a1d2a23ffff","8929a1d2a27ffff","8929a1d2a2bffff","8929a1d2a2fffff","8929a1d2a33ffff","8929a1d2a37ffff","8929a1d2a3bffff","8929a1d2a43ffff","8929a1d2a47ffff","8929a1d2a4bffff","8929a1d2a4fffff","8929a1d2a53ffff","8929a1d2a57ffff","8929a1d2a5bffff","8929a1d2a63ffff","8929a1d2a67ffff","8929a1d2a6bffff","8929a1d2a6fffff","8929a1d2a73ffff","8929a1d2a77ffff","8929a1d2a7bffff","8929a1d2a83ffff","8929a1d2a87ffff","8929a1d2a8bffff","8929a1d2a8fffff","8929a1d2a93ffff","8929a1d2a97ffff","8929a1d2a9bffff","8929a1d2aa3ffff","8929a1d2aa7ffff","8929a1d2aabffff","8929a1d2aafffff","8929a1d2ab3ffff","8929a1d2ab7ffff","8929a1d2abbffff","8929a1d2ac3ffff","8929a1d2ac7ffff","8929a1d2acbffff","8929a1d2acfffff","8929a1d2ad3ffff","8929a1d2ad7ffff","8929a1d2adbffff","8929a1d2b03ffff","8929a1d2b07ffff","8929a1d2b0bffff","8929a1d2b0fffff","8929a1d2b13ffff","8929a1d2b17ffff","8929a1d2b1bffff","8929a1d2b23ffff","8929a1d2b27ffff","8929a1d2b2bffff","8929a1d2b2fffff","8929a1d2b33ffff","8929a1d2b37ffff","8929a1d2b3bffff","8929a1d2b43ffff","8929a1d2b47ffff","8929a1d2b4bffff","8929a1d2b4fffff","8929a1d2b53ffff","8929a1d2b57ffff","8929a1d2b5bffff","8929a1d2b63ffff","8929a1d2b67ffff","8929a1d2b6bffff","8929a1d2b6fffff","8929a1d2b73ffff","8929a1d2b77ffff","8929a1d2b7bffff","8929a1d2b83ffff","8929a1d2b87ffff","8929a1d2b8bffff","8929a1d2b8fffff","8929a1d2b93ffff","8929a1d2b97ffff","8929a1d2b9bffff","8929a1d2ba3ffff","8929a1d2ba7ffff","8929a1d2babffff","8929a1d2bafffff","8929a1d2bb3ffff","8929a1d2bb7ffff","8929a1d2bbbffff","8929a1d2bc3ffff","8929a1d2bc7ffff","8929a1d2bcbffff","8929a1d2bcfffff","8929a1d2bd3ffff","8929a1d2bd7ffff","8929a1d2bdbffff","8929a1d2c03ffff","8929a1d2c07ffff","8929a1d2c0bffff","8929a1d2c0fffff","8929a1d2c13ffff","8929a1d2c17ffff","8929a1d2c1bffff","8929a1d2c23ffff","8929a1d2c27ffff","8929a1d2c2bffff","8929a1d2c2fffff","8929a1d2c33ffff","8929a1d2c37ffff","8929a1d2c3bffff","8929a1d2c43ffff","8929a1d2c47ffff","8929a1d2c4bffff","8929a1d2c4fffff","8929a1d2c53ffff","8929a1d2c57ffff","8929a1d2c5bffff","8929a1d2c63ffff","8929a1d2c67ffff","8929a1d2c6bffff","8929a1d2c6fffff","8929a1d2c73ffff","8929a1d2c77ffff","8929a1d2c7bffff","8929a1d2c83ffff","8929a1d2c87ffff","8929a1d2c8bffff","8929a1d2c8fffff","8929a1d2c93ffff","8929a1d2c97ffff","8929a1d2c9bffff","8929a1d2ca3ffff","8929a1d2ca7ffff","8929a1d2cabffff","8929a1d2cafffff","8929a1d2cb3ffff","8929a1d2cb7ffff","8929a1d2cbbffff","8929a1d2cc3ffff","8929a1d2cc7ffff","8929a1d2ccbffff","8929a1d2ccfffff","8929a1d2cd3ffff","8929a1d2cd7ffff","8929a1d2cdbffff","8929a1d2d03ffff","8929a1d2d07ffff","8929a1d2d0bffff","8929a1d2d0fffff","8929a1d2d13ffff","8929a1d2d17ffff","8929a1d2d1bffff","8929a1d2d23ffff","8929a1d2d27ffff","8929a1d2d2bffff","8929a1d2d2fffff","8929a1d2d33ffff","8929a1d2d37ffff","8929a1d2d3bffff","8929a1d2d43ffff","8929a1d2d47ffff","8929a1d2d4bffff","8929a1d2d4fffff","8929a1d2d53ffff","8929a1d2d57ffff","8929a1d2d5bffff","8929a1d2d63ffff","8929a1d2d67ffff","8929a1d2d6bffff","8929a1d2d6fffff","8929a1d2d73ffff","8929a1d2d77ffff","8929a1d2d7bffff","8929a1d2d83ffff","8929a1d2d87ffff","8929a1d2d8bffff","8929a1d2d8fffff","8929a1d2d93ffff","8929a1d2d97ffff","8929a1d2d9bffff","8929a1d2da3ffff","8929a1d2da7ffff","8929a1d2dabffff","8929a1d2dafffff","8929a1d2db3ffff","8929a1d2db7ffff","8929a1d2dbbffff","8929a1d2dc3ffff","8929a1d2dc7ffff","8929a1d2dcbffff","8929a1d2dcfffff","8929a1d2dd3ffff","8929a1d2dd7ffff","8929a1d2ddbffff","8929a1d2e03ffff","8929a1d2e07ffff","8929a1d2e0bffff","8929a1d2e0fffff","8929a1d2e13ffff","8929a1d2e17ffff","8929a1d2e1bffff","8929a1d2e23ffff","8929a1d2e27ffff","8929a1d2e2bffff","8929a1d2e2fffff","8929a1d2e33ffff","8929a1d2e37ffff","8929a1d2e3bffff","8929a1d2e43ffff","8929a1d2e47ffff","8929a1d2e4bffff","8929a1d2e4fffff","8929a1d2e53ffff","8929a1d2e57ffff","8929a1d2e5bffff","8929a1d2e63ffff","8929a1d2e67ffff","8929a1d2e6bffff","8929a1d2e6fffff","8929a1d2e73ffff","8929a1d2e77ffff","8929a1d2e7bffff","8929a1d2e83ffff","8929a1d2e87ffff","8929a1d2e8bffff","8929a1d2e8fffff","8929a1d2e93ffff","8929a1d2e97ffff","8929a1d2e9bffff","8929a1d2ea3ffff","8929a1d2ea7ffff","8929a1d2eabffff","8929a1d2eafffff","8929a1d2eb3ffff","8929a1d2eb7ffff","8929a1d2ebbffff","8929a1d2ec3ffff","8929a1d2ec7ffff","8929a1d2ecbffff","8929a1d2ecfffff","8929a1d2ed3ffff","8929a1d2ed7ffff","8929a1d2edbffff","8929a1d4003ffff","8929a1d4007ffff","8929a1d400bffff","8929a1d400fffff","8929a1d4013ffff","8929a1d4017ffff","8929a1d401bffff","8929a1d4023ffff","8929a1d4027ffff","8929a1d402bffff","8929a1d402fffff","8929a1d4033ffff","8929a1d4037ffff","8929a1d403bffff","8929a1d4043ffff","8929a1d4047ffff","8929a1d404bffff","8929a1d404fffff","8929a1d4053ffff","8929a1d4057ffff","8929a1d405bffff","8929a1d4063ffff","8929a1d4067ffff","8929a1d406bffff","8929a1d406fffff","8929a1d4073ffff","8929a1d4077ffff","8929a1d407bffff","8929a1d4083ffff","8929a1d4087ffff","8929a1d408bffff","8929a1d408fffff","8929a1d4093ffff","8929a1d4097ffff","8929a1d409bffff","8929a1d40a3ffff","8929a1d40a7ffff","8929a1d40abffff","8929a1d40afffff","8929a1d40b3ffff","8929a1d40b7ffff","8929a1d40bbffff","8929a1d40c3ffff","8929a1d40c7ffff","8929a1d40cbffff","8929a1d40cfffff","8929a1d40d3ffff","8929a1d40d7ffff","8929a1d40dbffff","8929a1d4103ffff","8929a1d4107ffff","8929a1d410bffff","8929a1d410fffff","8929a1d4113ffff","8929a1d4117ffff","8929a1d411bffff","8929a1d4123ffff","8929a1d4127ffff","8929a1d412bffff","8929a1d412fffff","8929a1d4133ffff","8929a1d4137ffff","8929a1d413bffff","8929a1d4143ffff","8929a1d4147ffff","8929a1d414bffff","8929a1d414fffff","8929a1d4153ffff","8929a1d4157ffff","8929a1d415bffff","8929a1d4163ffff","8929a1d4167ffff","8929a1d416bffff","8929a1d416fffff","8929a1d4173ffff","8929a1d4177ffff","8929a1d417bffff","8929a1d4183ffff","8929a1d4187ffff","8929a1d418bffff","8929a1d418fffff","8929a1d4193ffff","8929a1d4197ffff","8929a1d419bffff","8929a1d41a3ffff","8929a1d41a7ffff","8929a1d41abffff","8929a1d41afffff","8929a1d41b3ffff","8929a1d41b7ffff","8929a1d41bbffff","8929a1d41c3ffff","8929a1d41c7ffff","8929a1d41cbffff","8929a1d41cfffff","8929a1d41d3ffff","8929a1d41d7ffff","8929a1d41dbffff","8929a1d4203ffff","8929a1d4207ffff","8929a1d420bffff","8929a1d420fffff","8929a1d4213ffff","8929a1d4217ffff","8929a1d421bffff","8929a1d4223ffff","8929a1d4227ffff","8929a1d422bffff","8929a1d422fffff","8929a1d4233ffff","8929a1d4237ffff","8929a1d423bffff","8929a1d4243ffff","8929a1d4247ffff","8929a1d424bffff","8929a1d424fffff","8929a1d4253ffff","8929a1d4257ffff","8929a1d425bffff","8929a1d4263ffff","8929a1d4267ffff","8929a1d426bffff","8929a1d426fffff","8929a1d4273ffff","8929a1d4277ffff","8929a1d427bffff","8929a1d4283ffff","8929a1d4287ffff","8929a1d428bffff","8929a1d428fffff","8929a1d4293ffff","8929a1d4297ffff","8929a1d429bffff","8929a1d42a3ffff","8929a1d42a7ffff","8929a1d42abffff","8929a1d42afffff","8929a1d42b3ffff","8929a1d42b7ffff","8929a1d42bbffff","8929a1d42c3ffff","8929a1d42c7ffff","8929a1d42cbffff","8929a1d42cfffff","8929a1d42d3ffff","8929a1d42d7ffff","8929a1d42dbffff","8929a1d4303ffff","8929a1d4307ffff","8929a1d430bffff","8929a1d430fffff","8929a1d4313ffff","8929a1d4317ffff","8929a1d431bffff","8929a1d4323ffff","8929a1d4327ffff","8929a1d432bffff","8929a1d432fffff","8929a1d4333ffff","8929a1d4337ffff","8929a1d433bffff","8929a1d4343ffff","8929a1d4347ffff","8929a1d434bffff","8929a1d434fffff","8929a1d4353ffff","8929a1d4357ffff","8929a1d435bffff","8929a1d4363ffff","8929a1d4367ffff","8929a1d436bffff","8929a1d436fffff","8929a1d4373ffff","8929a1d4377ffff","8929a1d437bffff","8929a1d4383ffff","8929a1d4387ffff","8929a1d438bffff","8929a1d438fffff","8929a1d4393ffff","8929a1d4397ffff","8929a1d439bffff","8929a1d43a3ffff","8929a1d43a7ffff","8929a1d43abffff","8929a1d43afffff","8929a1d43b3ffff","8929a1d43b7ffff","8929a1d43bbffff","8929a1d43c3ffff","8929a1d43c7ffff","8929a1d43cbffff","8929a1d43cfffff","8929a1d43d3ffff","8929a1d43d7ffff","8929a1d43dbffff","8929a1d4403ffff","8929a1d4407ffff","8929a1d440bffff","8929a1d440fffff","8929a1d4413ffff","8929a1d4417ffff","8929a1d441bffff","8929a1d4423ffff","8929a1d4427ffff","8929a1d442bffff","8929a1d442fffff","8929a1d4433ffff","8929a1d4437ffff","8929a1d443bffff","8929a1d4443ffff","8929a1d4447ffff","8929a1d444bffff","8929a1d444fffff","8929a1d4453ffff","8929a1d4457ffff","8929a1d445bffff","8929a1d4463ffff","8929a1d4467ffff","8929a1d446bffff","8929a1d446fffff","8929a1d4473ffff","8929a1d4477ffff","8929a1d447bffff","8929a1d4483ffff","8929a1d4487ffff","8929a1d448bffff","8929a1d448fffff","8929a1d4493ffff","8929a1d4497ffff","8929a1d449bffff","8929a1d44a3ffff","8929a1d44a7ffff","8929a1d44abffff","8929a1d44afffff","8929a1d44b3ffff","8929a1d44b7ffff","8929a1d44bbffff","8929a1d44c3ffff","8929a1d44c7ffff","8929a1d44cbffff","8929a1d44cfffff","8929a1d44d3ffff","8929a1d44d7ffff","8929a1d44dbffff","8929a1d4503ffff","8929a1d4507ffff","8929a1d450bffff","8929a1d450fffff","8929a1d4513ffff","8929a1d4517ffff","8929a1d451bffff","8929a1d4523ffff","8929a1d4527ffff","8929a1d452bffff","8929a1d452fffff","8929a1d4533ffff","8929a1d4537ffff","8929a1d453bffff","8929a1d4543ffff","8929a1d4547ffff","8929a1d454bffff","8929a1d454fffff","8929a1d4553ffff","8929a1d4557ffff","8929a1d455bffff","8929a1d4563ffff","8929a1d4567ffff","8929a1d456bffff","8929a1d456fffff","8929a1d4573ffff","8929a1d4577ffff","8929a1d457bffff","8929a1d4583ffff","8929a1d4587ffff","8929a1d458bffff","8929a1d458fffff","8929a1d4593ffff","8929a1d4597ffff","8929a1d459bffff","8929a1d45a3ffff","8929a1d45a7ffff","8929a1d45abffff","8929a1d45afffff","8929a1d45b3ffff","8929a1d45b7ffff","8929a1d45bbffff","8929a1d45c3ffff","8929a1d45c7ffff","8929a1d45cbffff","8929a1d45cfffff","8929a1d45d3ffff","8929a1d45d7ffff","8929a1d45dbffff","8929a1d4603ffff","8929a1d4607ffff","8929a1d460bffff","8929a1d460fffff","8929a1d4613ffff","8929a1d4617ffff","8929a1d461bffff","8929a1d4623ffff","8929a1d4627ffff","8929a1d462bffff","8929a1d462fffff","8929a1d4633ffff","8929a1d4637ffff","8929a1d463bffff","8929a1d4643ffff","8929a1d4647ffff","8929a1d464bffff","8929a1d464fffff","8929a1d4653ffff","8929a1d4657ffff","8929a1d465bffff","8929a1d4663ffff","8929a1d4667ffff","8929a1d466bffff","8929a1d466fffff","8929a1d4673ffff","8929a1d4677ffff","8929a1d467bffff","8929a1d4683ffff","8929a1d4687ffff","8929a1d468bffff","8929a1d468fffff","8929a1d4693ffff","8929a1d4697ffff","8929a1d469bffff","8929a1d46a3ffff","8929a1d46a7ffff","8929a1d46abffff","8929a1d46afffff","8929a1d46b3ffff","8929a1d46b7ffff","8929a1d46bbffff","8929a1d46c3ffff","8929a1d46c7ffff","8929a1d46cbffff","8929a1d46cfffff","8929a1d46d3ffff","8929a1d46d7ffff","8929a1d46dbffff","8929a1d5003ffff","8929a1d5007ffff","8929a1d500bffff","8929a1d500fffff","8929a1d5013ffff","8929a1d5017ffff","8929a1d501bffff","8929a1d5023ffff","8929a1d5027ffff","8929a1d502bffff","8929a1d502fffff","8929a1d5033ffff","8929a1d5037ffff","8929a1d503bffff","8929a1d5043ffff","8929a1d5047ffff","8929a1d504bffff","8929a1d504fffff","8929a1d5053ffff","8929a1d5057ffff","8929a1d505bffff","8929a1d5063ffff","8929a1d5067ffff","8929a1d506bffff","8929a1d506fffff","8929a1d5073ffff","8929a1d5077ffff","8929a1d507bffff","8929a1d5083ffff","8929a1d5087ffff","8929a1d508bffff","8929a1d508fffff","8929a1d5093ffff","8929a1d5097ffff","8929a1d509bffff","8929a1d50a3ffff","8929a1d50a7ffff","8929a1d50abffff","8929a1d50afffff","8929a1d50b3ffff","8929a1d50b7ffff","8929a1d50bbffff","8929a1d50c3ffff","8929a1d50c7ffff","8929a1d50cbffff","8929a1d50cfffff","8929a1d50d3ffff","8929a1d50d7ffff","8929a1d50dbffff","8929a1d5103ffff","8929a1d5107ffff","8929a1d510bffff","8929a1d510fffff","8929a1d5113ffff","8929a1d5117ffff","8929a1d511bffff","8929a1d5123ffff","8929a1d5127ffff","8929a1d512bffff","8929a1d512fffff","8929a1d5133ffff","8929a1d5137ffff","8929a1d513bffff","8929a1d5143ffff","8929a1d5147ffff","8929a1d514bffff","8929a1d514fffff","8929a1d5153ffff","8929a1d5157ffff","8929a1d515bffff","8929a1d5163ffff","8929a1d5167ffff","8929a1d516bffff","8929a1d516fffff","8929a1d5173ffff","8929a1d5177ffff","8929a1d517bffff","8929a1d5183ffff","8929a1d5187ffff","8929a1d518bffff","8929a1d518fffff","8929a1d5193ffff","8929a1d5197ffff","8929a1d519bffff","8929a1d51a3ffff","8929a1d51a7ffff","8929a1d51abffff","8929a1d51afffff","8929a1d51b3ffff","8929a1d51b7ffff","8929a1d51bbffff","8929a1d51c3ffff","8929a1d51c7ffff","8929a1d51cbffff","8929a1d51cfffff","8929a1d51d3ffff","8929a1d51d7ffff","8929a1d51dbffff","8929a1d5203ffff","8929a1d5207ffff","8929a1d520bffff","8929a1d520fffff","8929a1d5213ffff","8929a1d5217ffff","8929a1d521bffff","8929a1d5223ffff","8929a1d5227ffff","8929a1d522bffff","8929a1d522fffff","8929a1d5233ffff","8929a1d5237ffff","8929a1d523bffff","8929a1d5243ffff","8929a1d5247ffff","8929a1d524bffff","8929a1d524fffff","8929a1d5253ffff","8929a1d5257ffff","8929a1d525bffff","8929a1d5263ffff","8929a1d5267ffff","8929a1d526bffff","8929a1d526fffff","8929a1d5273ffff","8929a1d5277ffff","8929a1d527bffff","8929a1d5283ffff","8929a1d5287ffff","8929a1d528bffff","8929a1d528fffff","8929a1d5293ffff","8929a1d5297ffff","8929a1d529bffff","8929a1d52a3ffff","8929a1d52a7ffff","8929a1d52abffff","8929a1d52afffff","8929a1d52b3ffff","8929a1d52b7ffff","8929a1d52bbffff","8929a1d52c3ffff","8929a1d52c7ffff","8929a1d52cbffff","8929a1d52cfffff","8929a1d52d3ffff","8929a1d52d7ffff","8929a1d52dbffff","8929a1d5303ffff","8929a1d5307ffff","8929a1d530bffff","8929a1d530fffff","8929a1d5313ffff","8929a1d5317ffff","8929a1d531bffff","8929a1d5323ffff","8929a1d5327ffff","8929a1d532bffff","8929a1d532fffff","8929a1d5333ffff","8929a1d5337ffff","8929a1d533bffff","8929a1d5343ffff","8929a1d5347ffff","8929a1d534bffff","8929a1d534fffff","8929a1d5353ffff","8929a1d5357ffff","8929a1d535bffff","8929a1d5363ffff","8929a1d5367ffff","8929a1d536bffff","8929a1d536fffff","8929a1d5373ffff","8929a1d5377ffff","8929a1d537bffff","8929a1d5383ffff","8929a1d5387ffff","8929a1d538bffff","8929a1d538fffff","8929a1d5393ffff","8929a1d5397ffff","8929a1d539bffff","8929a1d53a3ffff","8929a1d53a7ffff","8929a1d53abffff","8929a1d53afffff","8929a1d53b3ffff","8929a1d53b7ffff","8929a1d53bbffff","8929a1d53c3ffff","8929a1d53c7ffff","8929a1d53cbffff","8929a1d53cfffff","8929a1d53d3ffff","8929a1d53d7ffff","8929a1d53dbffff","8929a1d5403ffff","8929a1d5407ffff","8929a1d540bffff","8929a1d540fffff","8929a1d5413ffff","8929a1d5417ffff","8929a1d541bffff","8929a1d5423ffff","8929a1d5427ffff","8929a1d542bffff","8929a1d542fffff","8929a1d5433ffff","8929a1d5437ffff","8929a1d543bffff","8929a1d5443ffff","8929a1d5447ffff","8929a1d544bffff","8929a1d544fffff","8929a1d5453ffff","8929a1d5457ffff","8929a1d545bffff","8929a1d5463ffff","8929a1d5467ffff","8929a1d546bffff","8929a1d546fffff","8929a1d5473ffff","8929a1d5477ffff","8929a1d547bffff","8929a1d5483ffff","8929a1d5487ffff","8929a1d548bffff","8929a1d548fffff","8929a1d5493ffff","8929a1d5497ffff","8929a1d549bffff","8929a1d54a3ffff","8929a1d54a7ffff","8929a1d54abffff","8929a1d54afffff","8929a1d54b3ffff","8929a1d54b7ffff","8929a1d54bbffff","8929a1d54c3ffff","8929a1d54c7ffff","8929a1d54cbffff","8929a1d54cfffff","8929a1d54d3ffff","8929a1d54d7ffff","8929a1d54dbffff","8929a1d5503ffff","8929a1d5507ffff","8929a1d550bffff","8929a1d550fffff","8929a1d5513ffff","8929a1d5517ffff","8929a1d551bffff","8929a1d5523ffff","8929a1d5527ffff","8929a1d552bffff","8929a1d552fffff","8929a1d5533ffff","8929a1d5537ffff","8929a1d553bffff","8929a1d5543ffff","8929a1d5547ffff","8929a1d554bffff","8929a1d554fffff","8929a1d5553ffff","8929a1d5557ffff","8929a1d555bffff","8929a1d5563ffff","8929a1d5567ffff","8929a1d556bffff","8929a1d556fffff","8929a1d5573ffff","8929a1d5577ffff","8929a1d557bffff","8929a1d5583ffff","8929a1d5587ffff","8929a1d558bffff","8929a1d558fffff","8929a1d5593ffff","8929a1d5597ffff","8929a1d559bffff","8929a1d55a3ffff","8929a1d55a7ffff","8929a1d55abffff","8929a1d55afffff","8929a1d55b3ffff","8929a1d55b7ffff","8929a1d55bbffff","8929a1d55c3ffff","8929a1d55c7ffff","8929a1d55cbffff","8929a1d55cfffff","8929a1d55d3ffff","8929a1d55d7ffff","8929a1d55dbffff","8929a1d5603ffff","8929a1d5607ffff","8929a1d560bffff","8929a1d560fffff","8929a1d5613ffff","8929a1d5617ffff","8929a1d561bffff","8929a1d5623ffff","8929a1d5627ffff","8929a1d562bffff","8929a1d562fffff","8929a1d5633ffff","8929a1d5637ffff","8929a1d563bffff","8929a1d5643ffff","8929a1d5647ffff","8929a1d564bffff","8929a1d564fffff","8929a1d5653ffff","8929a1d5657ffff","8929a1d565bffff","8929a1d5663ffff","8929a1d5667ffff","8929a1d566bffff","8929a1d566fffff","8929a1d5673ffff","8929a1d5677ffff","8929a1d567bffff","8929a1d5683ffff","8929a1d5687ffff","8929a1d568bffff","8929a1d568fffff","8929a1d5693ffff","8929a1d5697ffff","8929a1d569bffff","8929a1d56a3ffff","8929a1d56a7ffff","8929a1d56abffff","8929a1d56afffff","8929a1d56b3ffff","8929a1d56b7ffff","8929a1d56bbffff","8929a1d56c3ffff","8929a1d56c7ffff","8929a1d56cbffff","8929a1d56cfffff","8929a1d56d3ffff","8929a1d56d7ffff","8929a1d56dbffff","8929a1d6003ffff","8929a1d6007ffff","8929a1d600bffff","8929a1d600fffff","8929a1d6013ffff","8929a1d6017ffff","8929a1d601bffff","8929a1d6023ffff","8929a1d6027ffff","8929a1d602bffff","8929a1d602fffff","8929a1d6033ffff","8929a1d6037ffff","8929a1d603bffff","8929a1d6043ffff","8929a1d6047ffff","8929a1d604bffff","8929a1d604fffff","8929a1d6053ffff","8929a1d6057ffff","8929a1d605bffff","8929a1d6063ffff","8929a1d6067ffff","8929a1d606bffff","8929a1d606fffff","8929a1d6073ffff","8929a1d6077ffff","8929a1d607bffff","8929a1d6083ffff","8929a1d6087ffff","8929a1d608bffff","8929a1d608fffff","8929a1d6093ffff","8929a1d6097ffff","8929a1d609bffff","8929a1d60a3ffff","8929a1d60a7ffff","8929a1d60abffff","8929a1d60afffff","8929a1d60b3ffff","8929a1d60b7ffff","8929a1d60bbffff","8929a1d60c3ffff","8929a1d60c7ffff","8929a1d60cbffff","8929a1d60cfffff","8929a1d60d3ffff","8929a1d60d7ffff","8929a1d60dbffff","8929a1d6103ffff","8929a1d6107ffff","8929a1d610bffff","8929a1d610fffff","8929a1d6113ffff","8929a1d6117ffff","8929a1d611bffff","8929a1d6123ffff","8929a1d6127ffff","8929a1d612bffff","8929a1d612fffff","8929a1d6133ffff","8929a1d6137ffff","8929a1d613bffff","8929a1d6143ffff","8929a1d6147ffff","8929a1d614bffff","8929a1d614fffff","8929a1d6153ffff","8929a1d6157ffff","8929a1d615bffff","8929a1d6163ffff","8929a1d6167ffff","8929a1d616bffff","8929a1d616fffff","8929a1d6173ffff","8929a1d6177ffff","8929a1d617bffff","8929a1d6183ffff","8929a1d6187ffff","8929a1d618bffff","8929a1d618fffff","8929a1d6193ffff","8929a1d6197ffff","8929a1d619bffff","8929a1d61a3ffff","8929a1d61a7ffff","8929a1d61abffff","8929a1d61afffff","8929a1d61b3ffff","8929a1d61b7ffff","8929a1d61bbffff","8929a1d61c3ffff","8929a1d61c7ffff","8929a1d61cbffff","8929a1d61cfffff","8929a1d61d3ffff","8929a1d61d7ffff","8929a1d61dbffff","8929a1d6203ffff","8929a1d6207ffff","8929a1d620bffff","8929a1d620fffff","8929a1d6213ffff","8929a1d6217ffff","8929a1d621bffff","8929a1d6223ffff","8929a1d6227ffff","8929a1d622bffff","8929a1d622fffff","8929a1d6233ffff","8929a1d6237ffff","8929a1d623bffff","8929a1d6243ffff","8929a1d6247ffff","8929a1d624bffff","8929a1d624fffff","8929a1d6253ffff","8929a1d6257ffff","8929a1d625bffff","8929a1d6263ffff","8929a1d6267ffff","8929a1d626bffff","8929a1d626fffff","8929a1d6273ffff","8929a1d6277ffff","8929a1d627bffff","8929a1d6283ffff","8929a1d6287ffff","8929a1d628bffff","8929a1d628fffff","8929a1d6293ffff","8929a1d6297ffff","8929a1d629bffff","8929a1d62a3ffff","8929a1d62a7ffff","8929a1d62abffff","8929a1d62afffff","8929a1d62b3ffff","8929a1d62b7ffff","8929a1d62bbffff","8929a1d62c3ffff","8929a1d62c7ffff","8929a1d62cbffff","8929a1d62cfffff","8929a1d62d3ffff","8929a1d62d7ffff","8929a1d62dbffff","8929a1d6303ffff","8929a1d6307ffff","8929a1d630bffff","8929a1d630fffff","8929a1d6313ffff","8929a1d6317ffff","8929a1d631bffff","8929a1d6323ffff","8929a1d6327ffff","8929a1d632bffff","8929a1d632fffff","8929a1d6333ffff","8929a1d6337ffff","8929a1d633bffff","8929a1d6343ffff","8929a1d6347ffff","8929a1d634bffff","8929a1d634fffff","8929a1d6353ffff","8929a1d6357ffff","8929a1d635bffff","8929a1d6363ffff","8929a1d6367ffff","8929a1d636bffff","8929a1d636fffff","8929a1d6373ffff","8929a1d6377ffff","8929a1d637bffff","8929a1d6383ffff","8929a1d6387ffff","8929a1d638bffff","8929a1d638fffff","8929a1d6393ffff","8929a1d6397ffff","8929a1d639bffff","8929a1d63a3ffff","8929a1d63a7ffff","8929a1d63abffff","8929a1d63afffff","8929a1d63b3ffff","8929a1d63b7ffff","8929a1d63bbffff","8929a1d63c3ffff","8929a1d63c7ffff","8929a1d63cbffff","8929a1d63cfffff","8929a1d63d3ffff","8929a1d63d7ffff","8929a1d63dbffff","8929a1d6403ffff","8929a1d6407ffff","8929a1d640bffff","8929a1d640fffff","8929a1d6413ffff","8929a1d6417ffff","8929a1d641bffff","8929a1d6423ffff","8929a1d6427ffff","8929a1d642bffff","8929a1d642fffff","8929a1d6433ffff","8929a1d6437ffff","8929a1d643bffff","8929a1d6443ffff","8929a1d6447ffff","8929a1d644bffff","8929a1d644fffff","8929a1d6453ffff","8929a1d6457ffff","8929a1d645bffff","8929a1d6463ffff","8929a1d6467ffff","8929a1d646bffff","8929a1d646fffff","8929a1d6473ffff","8929a1d6477ffff","8929a1d647bffff","8929a1d6483ffff","8929a1d6487ffff","8929a1d648bffff","8929a1d648fffff","8929a1d6493ffff","8929a1d6497ffff","8929a1d649bffff","8929a1d64a3ffff","8929a1d64a7ffff","8929a1d64abffff","8929a1d64afffff","8929a1d64b3ffff","8929a1d64b7ffff","8929a1d64bbffff","8929a1d64c3ffff","8929a1d64c7ffff","8929a1d64cbffff","8929a1d64cfffff","8929a1d64d3ffff","8929a1d64d7ffff","8929a1d64dbffff","8929a1d6503ffff","8929a1d6507ffff","8929a1d650bffff","8929a1d650fffff","8929a1d6513ffff","8929a1d6517ffff","8929a1d651bffff","8929a1d6523ffff","8929a1d6527ffff","8929a1d652bffff","8929a1d652fffff","8929a1d6533ffff","8929a1d6537ffff","8929a1d653bffff","8929a1d6543ffff","8929a1d6547ffff","8929a1d654bffff","8929a1d654fffff","8929a1d6553ffff","8929a1d6557ffff","8929a1d655bffff","8929a1d6563ffff","8929a1d6567ffff","8929a1d656bffff","8929a1d656fffff","8929a1d6573ffff","8929a1d6577ffff","8929a1d657bffff","8929a1d6583ffff","8929a1d6587ffff","8929a1d658bffff","8929a1d658fffff","8929a1d6593ffff","8929a1d6597ffff","8929a1d659bffff","8929a1d65a3ffff","8929a1d65a7ffff","8929a1d65abffff","8929a1d65afffff","8929a1d65b3ffff","8929a1d65b7ffff","8929a1d65bbffff","8929a1d65c3ffff","8929a1d65c7ffff","8929a1d65cbffff","8929a1d65cfffff","8929a1d65d3ffff","8929a1d65d7ffff","8929a1d65dbffff","8929a1d6603ffff","8929a1d6607ffff","8929a1d660bffff","8929a1d660fffff","8929a1d6613ffff","8929a1d6617ffff","8929a1d661bffff","8929a1d6623ffff","8929a1d6627ffff","8929a1d662bffff","8929a1d662fffff","8929a1d6633ffff","8929a1d6637ffff","8929a1d663bffff","8929a1d6643ffff","8929a1d6647ffff","8929a1d664bffff","8929a1d664fffff","8929a1d6653ffff","8929a1d6657ffff","8929a1d665bffff","8929a1d6663ffff","8929a1d6667ffff","8929a1d666bffff","8929a1d666fffff","8929a1d6673ffff","8929a1d6677ffff","8929a1d667bffff","8929a1d6683ffff","8929a1d6687ffff","8929a1d668bffff","8929a1d668fffff","8929a1d6693ffff","8929a1d6697ffff","8929a1d669bffff","8929a1d66a3ffff","8929a1d66a7ffff","8929a1d66abffff","8929a1d66afffff","8929a1d66b3ffff","8929a1d66b7ffff","8929a1d66bbffff","8929a1d66c3ffff","8929a1d66c7ffff","8929a1d66cbffff","8929a1d66cfffff","8929a1d66d3ffff","8929a1d66d7ffff","8929a1d66dbffff","8929a1d7003ffff","8929a1d7007ffff","8929a1d700bffff","8929a1d700fffff","8929a1d7013ffff","8929a1d7017ffff","8929a1d701bffff","8929a1d7023ffff","8929a1d7027ffff","8929a1d702bffff","8929a1d702fffff","8929a1d7033ffff","8929a1d7037ffff","8929a1d703bffff","8929a1d7043ffff","8929a1d7047ffff","8929a1d704bffff","8929a1d704fffff","8929a1d7053ffff","8929a1d7057ffff","8929a1d705bffff","8929a1d7063ffff","8929a1d7067ffff","8929a1d706bffff","8929a1d706fffff","8929a1d7073ffff","8929a1d7077ffff","8929a1d707bffff","8929a1d7083ffff","8929a1d7087ffff","8929a1d708bffff","8929a1d708fffff","8929a1d7093ffff","8929a1d7097ffff","8929a1d709bffff","8929a1d70a3ffff","8929a1d70a7ffff","8929a1d70abffff","8929a1d70afffff","8929a1d70b3ffff","8929a1d70b7ffff","8929a1d70bbffff","8929a1d70c3ffff","8929a1d70c7ffff","8929a1d70cbffff","8929a1d70cfffff","8929a1d70d3ffff","8929a1d70d7ffff","8929a1d70dbffff","8929a1d7103ffff","8929a1d7107ffff","8929a1d710bffff","8929a1d710fffff","8929a1d7113ffff","8929a1d7117ffff","8929a1d711bffff","8929a1d7123ffff","8929a1d7127ffff","8929a1d712bffff","8929a1d712fffff","8929a1d7133ffff","8929a1d7137ffff","8929a1d713bffff","8929a1d7143ffff","8929a1d7147ffff","8929a1d714bffff","8929a1d714fffff","8929a1d7153ffff","8929a1d7157ffff","8929a1d715bffff","8929a1d7163ffff","8929a1d7167ffff","8929a1d716bffff","8929a1d716fffff","8929a1d7173ffff","8929a1d7177ffff","8929a1d717bffff","8929a1d7183ffff","8929a1d7187ffff","8929a1d718bffff","8929a1d718fffff","8929a1d7193ffff","8929a1d7197ffff","8929a1d719bffff","8929a1d71a3ffff","8929a1d71a7ffff","8929a1d71abffff","8929a1d71afffff","8929a1d71b3ffff","8929a1d71b7ffff","8929a1d71bbffff","8929a1d71c3ffff","8929a1d71c7ffff","8929a1d71cbffff","8929a1d71cfffff","8929a1d71d3ffff","8929a1d71d7ffff","8929a1d71dbffff","8929a1d7203ffff","8929a1d7207ffff","8929a1d720bffff","8929a1d720fffff","8929a1d7213ffff","8929a1d7217ffff","8929a1d721bffff","8929a1d7223ffff","8929a1d7227ffff","8929a1d722bffff","8929a1d722fffff","8929a1d7233ffff","8929a1d7237ffff","8929a1d723bffff","8929a1d7243ffff","8929a1d7247ffff","8929a1d724bffff","8929a1d724fffff","8929a1d7253ffff","8929a1d7257ffff","8929a1d725bffff","8929a1d7263ffff","8929a1d7267ffff","8929a1d726bffff","8929a1d726fffff","8929a1d7273ffff","8929a1d7277ffff","8929a1d727bffff","8929a1d7283ffff","8929a1d7287ffff","8929a1d728bffff","8929a1d728fffff","8929a1d7293ffff","8929a1d7297ffff","8929a1d729bffff","8929a1d72a3ffff","8929a1d72a7ffff","8929a1d72abffff","8929a1d72afffff","8929a1d72b3ffff","8929a1d72b7ffff","8929a1d72bbffff","8929a1d72c3ffff","8929a1d72c7ffff","8929a1d72cbffff","8929a1d72cfffff","8929a1d72d3ffff","8929a1d72d7ffff","8929a1d72dbffff","8929a1d7303ffff","8929a1d7307ffff","8929a1d730bffff","8929a1d730fffff","8929a1d7313ffff","8929a1d7317ffff","8929a1d731bffff","8929a1d7323ffff","8929a1d7327ffff","8929a1d732bffff","8929a1d732fffff","8929a1d7333ffff","8929a1d7337ffff","8929a1d733bffff","8929a1d7343ffff","8929a1d7347ffff","8929a1d734bffff","8929a1d734fffff","8929a1d7353ffff","8929a1d7357ffff","8929a1d735bffff","8929a1d7363ffff","8929a1d7367ffff","8929a1d736bffff","8929a1d736fffff","8929a1d7373ffff","8929a1d7377ffff","8929a1d737bffff","8929a1d7383ffff","8929a1d7387ffff","8929a1d738bffff","8929a1d738fffff","8929a1d7393ffff","8929a1d7397ffff","8929a1d739bffff","8929a1d73a3ffff","8929a1d73a7ffff","8929a1d73abffff","8929a1d73afffff","8929a1d73b3ffff","8929a1d73b7ffff","8929a1d73bbffff","8929a1d73c3ffff","8929a1d73c7ffff","8929a1d73cbffff","8929a1d73cfffff","8929a1d73d3ffff","8929a1d73d7ffff","8929a1d73dbffff","8929a1d7403ffff","8929a1d7407ffff","8929a1d740bffff","8929a1d740fffff","8929a1d7413ffff","8929a1d7417ffff","8929a1d741bffff","8929a1d7423ffff","8929a1d7427ffff","8929a1d742bffff","8929a1d742fffff","8929a1d7433ffff","8929a1d7437ffff","8929a1d743bffff","8929a1d7443ffff","8929a1d7447ffff","8929a1d744bffff","8929a1d744fffff","8929a1d7453ffff","8929a1d7457ffff","8929a1d745bffff","8929a1d7463ffff","8929a1d7467ffff","8929a1d746bffff","8929a1d746fffff","8929a1d7473ffff","8929a1d7477ffff","8929a1d747bffff","8929a1d7483ffff","8929a1d7487ffff","8929a1d748bffff","8929a1d748fffff","8929a1d7493ffff","8929a1d7497ffff","8929a1d749bffff","8929a1d74a3ffff","8929a1d74a7ffff","8929a1d74abffff","8929a1d74afffff","8929a1d74b3ffff","8929a1d74b7ffff","8929a1d74bbffff","8929a1d74c3ffff","8929a1d74c7ffff","8929a1d74cbffff","8929a1d74cfffff","8929a1d74d3ffff","8929a1d74d7ffff","8929a1d74dbffff","8929a1d7503ffff","8929a1d7507ffff","8929a1d750bffff","8929a1d750fffff","8929a1d7513ffff","8929a1d7517ffff","8929a1d751bffff","8929a1d7523ffff","8929a1d7527ffff","8929a1d752bffff","8929a1d752fffff","8929a1d7533ffff","8929a1d7537ffff","8929a1d753bffff","8929a1d7543ffff","8929a1d7547ffff","8929a1d754bffff","8929a1d754fffff","8929a1d7553ffff","8929a1d7557ffff","8929a1d755bffff","8929a1d7563ffff","8929a1d7567ffff","8929a1d756bffff","8929a1d756fffff","8929a1d7573ffff","8929a1d7577ffff","8929a1d757bffff","8929a1d7583ffff","8929a1d7587ffff","8929a1d758bffff","8929a1d758fffff","8929a1d7593ffff","8929a1d7597ffff","8929a1d759bffff","8929a1d75a3ffff","8929a1d75a7ffff","8929a1d75abffff","8929a1d75afffff","8929a1d75b3ffff","8929a1d75b7ffff","8929a1d75bbffff","8929a1d75c3ffff","8929a1d75c7ffff","8929a1d75cbffff","8929a1d75cfffff","8929a1d75d3ffff","8929a1d75d7ffff","8929a1d75dbffff","8929a1d7603ffff","8929a1d7607ffff","8929a1d760bffff","8929a1d760fffff","8929a1d7613ffff","8929a1d7617ffff","8929a1d761bffff","8929a1d7623ffff","8929a1d7627ffff","8929a1d762bffff","8929a1d762fffff","8929a1d7633ffff","8929a1d7637ffff","8929a1d763bffff","8929a1d7643ffff","8929a1d7647ffff","8929a1d764bffff","8929a1d764fffff","8929a1d7653ffff","8929a1d7657ffff","8929a1d765bffff","8929a1d7663ffff","8929a1d7667ffff","8929a1d766bffff","8929a1d766fffff","8929a1d7673ffff","8929a1d7677ffff","8929a1d767bffff","8929a1d7683ffff","8929a1d7687ffff","8929a1d768bffff","8929a1d768fffff","8929a1d7693ffff","8929a1d7697ffff","8929a1d769bffff","8929a1d76a3ffff","8929a1d76a7ffff","8929a1d76abffff","8929a1d76afffff","8929a1d76b3ffff","8929a1d76b7ffff","8929a1d76bbffff","8929a1d76c3ffff","8929a1d76c7ffff","8929a1d76cbffff","8929a1d76cfffff","8929a1d76d3ffff","8929a1d76d7ffff","8929a1d76dbffff","8929a56d803ffff","8929a56d807ffff","8929a56d80bffff","8929a56d80fffff","8929a56d813ffff","8929a56d817ffff","8929a56d81bffff","8929a56d823ffff","8929a56d827ffff","8929a56d82bffff","8929a56d82fffff","8929a56d833ffff","8929a56d837ffff","8929a56d83bffff","8929a56d843ffff","8929a56d847ffff","8929a56d84bffff","8929a56d84fffff","8929a56d853ffff","8929a56d857ffff","8929a56d85bffff","8929a56d863ffff","8929a56d867ffff","8929a56d86bffff","8929a56d86fffff","8929a56d873ffff","8929a56d877ffff","8929a56d87bffff","8929a56d883ffff","8929a56d887ffff","8929a56d88bffff","8929a56d88fffff","8929a56d893ffff","8929a56d897ffff","8929a56d89bffff","8929a56d8a3ffff","8929a56d8a7ffff","8929a56d8abffff","8929a56d8afffff","8929a56d8b3ffff","8929a56d8b7ffff","8929a56d8bbffff","8929a56d8c3ffff","8929a56d8c7ffff","8929a56d8cbffff","8929a56d8cfffff","8929a56d8d3ffff","8929a56d8d7ffff","8929a56d8dbffff","8929a56d903ffff","8929a56d907ffff","8929a56d90bffff","8929a56d90fffff","8929a56d913ffff","8929a56d917ffff","8929a56d91bffff","8929a56d923ffff","8929a56d927ffff","8929a56d92bffff","8929a56d92fffff","8929a56d933ffff","8929a56d937ffff","8929a56d93bffff","8929a56d943ffff","8929a56d947ffff","8929a56d94bffff","8929a56d94fffff","8929a56d953ffff","8929a56d957ffff","8929a56d95bffff","8929a56d963ffff","8929a56d967ffff","8929a56d96bffff","8929a56d96fffff","8929a56d973ffff","8929a56d977ffff","8929a56d97bffff","8929a56d983ffff","8929a56d987ffff","8929a56d98bffff","8929a56d98fffff","8929a56d993ffff","8929a56d997ffff","8929a56d99bffff","8929a56d9a3ffff","8929a56d9a7ffff","8929a56d9abffff","8929a56d9afffff","8929a56d9b3ffff","8929a56d9b7ffff","8929a56d9bbffff","8929a56d9c3ffff","8929a56d9c7ffff","8929a56d9cbffff","8929a56d9cfffff","8929a56d9d3ffff","8929a56d9d7ffff","8929a56d9dbffff","8929a56da03ffff","8929a56da07ffff","8929a56da0bffff","8929a56da0fffff","8929a56da13ffff","8929a56da17ffff","8929a56da1bffff","8929a56da23ffff","8929a56da27ffff","8929a56da2bffff","8929a56da2fffff","8929a56da33ffff","8929a56da37ffff","8929a56da3bffff","8929a56da43ffff","8929a56da47ffff","8929a56da4bffff","8929a56da4fffff","8929a56da53ffff","8929a56da57ffff","8929a56da5bffff","8929a56da63ffff","8929a56da67ffff","8929a56da6bffff","8929a56da6fffff","8929a56da73ffff","8929a56da77ffff","8929a56da7bffff","8929a56da83ffff","8929a56da87ffff","8929a56da8bffff","8929a56da8fffff","8929a56da93ffff","8929a56da97ffff","8929a56da9bffff","8929a56daa3ffff","8929a56daa7ffff","8929a56daabffff","8929a56daafffff","8929a56dab3ffff","8929a56dab7ffff","8929a56dabbffff","8929a56dac3ffff","8929a56dac7ffff","8929a56dacbffff","8929a56dacfffff","8929a56dad3ffff","8929a56dad7ffff","8929a56dadbffff","8929a56db03ffff","8929a56db07ffff","8929a56db0bffff","8929a56db0fffff","8929a56db13ffff","8929a56db17ffff","8929a56db1bffff","8929a56db23ffff","8929a56db27ffff","8929a56db2bffff","8929a56db2fffff","8929a56db33ffff","8929a56db37ffff","8929a56db3bffff","8929a56db43ffff","8929a56db47ffff","8929a56db4bffff","8929a56db4fffff","8929a56db53ffff","8929a56db57ffff","8929a56db5bffff","8929a56db63ffff","8929a56db67ffff","8929a56db6bffff","8929a56db6fffff","8929a56db73ffff","8929a56db77ffff","8929a56db7bffff","8929a56db83ffff","8929a56db87ffff","8929a56db8bffff","8929a56db8fffff","8929a56db93ffff","8929a56db97ffff","8929a56db9bffff","8929a56dba3ffff","8929a56dba7ffff","8929a56dbabffff","8929a56dbafffff","8929a56dbb3ffff","8929a56dbb7ffff","8929a56dbbbffff","8929a56dbc3ffff","8929a56dbc7ffff","8929a56dbcbffff","8929a56dbcfffff","8929a56dbd3ffff","8929a56dbd7ffff","8929a56dbdbffff","8929a56dc03ffff","8929a56dc07ffff","8929a56dc0bffff","8929a56dc0fffff","8929a56dc13ffff","8929a56dc17ffff","8929a56dc1bffff","8929a56dc23ffff","8929a56dc27ffff","8929a56dc2bffff","8929a56dc2fffff","8929a56dc33ffff","8929a56dc37ffff","8929a56dc3bffff","8929a56dc43ffff","8929a56dc47ffff","8929a56dc4bffff","8929a56dc4fffff","8929a56dc53ffff","8929a56dc57ffff","8929a56dc5bffff","8929a56dc63ffff","8929a56dc67ffff","8929a56dc6bffff","8929a56dc6fffff","8929a56dc73ffff","8929a56dc77ffff","8929a56dc7bffff","8929a56dc83ffff","8929a56dc87ffff","8929a56dc8bffff","8929a56dc8fffff","8929a56dc93ffff","8929a56dc97ffff","8929a56dc9bffff","8929a56dca3ffff","8929a56dca7ffff","8929a56dcabffff","8929a56dcafffff","8929a56dcb3ffff","8929a56dcb7ffff","8929a56dcbbffff","8929a56dcc3ffff","8929a56dcc7ffff","8929a56dccbffff","8929a56dccfffff","8929a56dcd3ffff","8929a56dcd7ffff","8929a56dcdbffff","8929a56dd03ffff","8929a56dd07ffff","8929a56dd0bffff","8929a56dd0fffff","8929a56dd13ffff","8929a56dd17ffff","8929a56dd1bffff","8929a56dd23ffff","8929a56dd27ffff","8929a56dd2bffff","8929a56dd2fffff","8929a56dd33ffff","8929a56dd37ffff","8929a56dd3bffff","8929a56dd43ffff","8929a56dd47ffff","8929a56dd4bffff","8929a56dd4fffff","8929a56dd53ffff","8929a56dd57ffff","8929a56dd5bffff","8929a56dd63ffff","8929a56dd67ffff","8929a56dd6bffff","8929a56dd6fffff","8929a56dd73ffff","8929a56dd77ffff","8929a56dd7bffff","8929a56dd83ffff","8929a56dd87ffff","8929a56dd8bffff","8929a56dd8fffff","8929a56dd93ffff","8929a56dd97ffff","8929a56dd9bffff","8929a56dda3ffff","8929a56dda7ffff","8929a56ddabffff","8929a56ddafffff","8929a56ddb3ffff","8929a56ddb7ffff","8929a56ddbbffff","8929a56ddc3ffff","8929a56ddc7ffff","8929a56ddcbffff","8929a56ddcfffff","8929a56ddd3ffff","8929a56ddd7ffff","8929a56dddbffff","8929a56de03ffff","8929a56de07ffff","8929a56de0bffff","8929a56de0fffff","8929a56de13ffff","8929a56de17ffff","8929a56de1bffff","8929a56de23ffff","8929a56de27ffff","8929a56de2bffff","8929a56de2fffff","8929a56de33ffff","8929a56de37ffff","8929a56de3bffff","8929a56de43ffff","8929a56de47ffff","8929a56de4bffff","8929a56de4fffff","8929a56de53ffff","8929a56de57ffff","8929a56de5bffff","8929a56de63ffff","8929a56de67ffff","8929a56de6bffff","8929a56de6fffff","8929a56de73ffff","8929a56de77ffff","8929a56de7bffff","8929a56de83ffff","8929a56de87ffff","8929a56de8bffff","8929a56de8fffff","8929a56de93ffff","8929a56de97ffff","8929a56de9bffff","8929a56dea3ffff","8929a56dea7ffff","8929a56deabffff","8929a56deafffff","8929a56deb3ffff","8929a56deb7ffff","8929a56debbffff","8929a56dec3ffff","8929a56dec7ffff","8929a56decbffff","8929a56decfffff","8929a56ded3ffff","8929a56ded7ffff","8929a56dedbffff"];
+        
+        // Wait for h3 library to load
+        function waitForH3(callback, maxAttempts) {
+            maxAttempts = maxAttempts || 50; // 50 attempts = 5 seconds max
+            let attempts = 0;
+            
+            function check() {
+                attempts++;
+                
+                // Check if h3 is available (try different possible names)
+                let h3Lib = null;
+                if (typeof h3 !== 'undefined' && h3 !== null) {
+                    h3Lib = h3;
+                } else if (typeof window.h3 !== 'undefined' && window.h3 !== null) {
+                    h3Lib = window.h3;
+                } else if (typeof H3 !== 'undefined' && H3 !== null) {
+                    h3Lib = H3;
+                }
+                
+                if (h3Lib && typeof h3Lib.cellToBoundary === 'function') {
+                    // Make sure it's globally available
+                    window.h3 = h3Lib;
+                    console.log('✅ h3 library loaded successfully!');
+                    console.log('h3 methods:', Object.keys(h3Lib).slice(0, 10));
+                    callback();
+                } else if (attempts < maxAttempts) {
+                    // Wait 100ms and try again
+                    setTimeout(check, 100);
+                } else {
+                    console.error('❌ h3 library failed to load after', maxAttempts, 'attempts');
+                    console.error('Available globals containing "h3":', Object.keys(window).filter(k => k.toLowerCase().includes('h3')));
+                    console.error('Check Network tab to see if h3-js script loaded successfully');
+                }
+            }
+            
+            check();
+        }
+        
+        // Get boundary coordinates from H3 ID
+        // Try different h3-js API methods to get usable data
+        function getH3Boundary(h3Id) {
+            try {
+                // Method 1: Try cellToBoundary - might return array directly in some versions
+                if (typeof h3.cellToBoundary === 'function') {
+                    const boundary = h3.cellToBoundary(h3Id, true);
+                    
+                    // Check if it's already an array (some versions return arrays)
+                    if (Array.isArray(boundary) && boundary.length > 0) {
+                        return boundary;
+                    }
+                    
+                    // If it's a pointer, try to read from it
+                    if (typeof boundary === 'number' && boundary !== 0) {
+                        // Try using h3's helper to read LatLng array
+                        // Some versions have h3.cellToBoundary that returns usable data
+                        console.log('cellToBoundary returned pointer:', boundary);
+                    }
+                }
+                
+                // Method 2: Try cellsToLinkedMultiPolygon and extract boundaries
+                // This is more complex but might work better
+                
+                return null;
+            } catch (e) {
+                console.error('Error getting boundary for', h3Id, ':', e);
+                return null;
+            }
+        }
+        
+        // Get center from H3 ID
+        function getH3Center(h3Id) {
+            try {
+                if (typeof h3.cellToLatLng === 'function') {
+                    const center = h3.cellToLatLng(h3Id);
+                    
+                    // Check if it's an array [lat, lng]
+                    if (Array.isArray(center) && center.length >= 2) {
+                        return { lat: center[0], lng: center[1] };
+                    }
+                    
+                    // If it's a pointer, we'd need to read from it
+                    if (typeof center === 'number' && center !== 0) {
+                        console.log('cellToLatLng returned pointer:', center);
+                    }
+                }
+            } catch (e) {
+                console.error('Error getting center for', h3Id, ':', e);
+            }
+            return null;
+        }
+        
+        // Define initMaps as a global function so Google Maps can call it  
+        window.initMaps = function() {
+            console.log('Google Maps loaded, waiting for h3 library...');
+            
+            waitForH3(function() {
+                console.log('Single H3 IDs:', singleH3Ids);
+                console.log('Multi H3 IDs:', multiH3Ids);
+                
+                initMapWithH3('map-single', singleH3Ids);
+                initMapWithH3('map-multi', multiH3Ids);
+                initMapWithH3('map-large', largeH3Ids);
+            });
+        }
+        
+        // Initialize map and render H3 hexagons
+        function initMapWithH3(containerId, h3Ids) {
+            console.log('Initializing map:', containerId, 'with', h3Ids.length, 'H3 IDs');
+            
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error('Container not found:', containerId);
+                return;
+            }
+            
+            // Calculate center from H3 IDs
+            let totalLat = 0, totalLng = 0, validCenters = 0;
+            const centers = [];
+            
+            h3Ids.forEach(h3Id => {
+                const center = getH3Center(h3Id);
+                if (center) {
+                    centers.push(center);
+                    totalLat += center.lat;
+                    totalLng += center.lng;
+                    validCenters++;
+                }
+            });
+            
+            // Use calculated center or fallback
+            const mapCenter = validCenters > 0 
+                ? { lat: totalLat / validCenters, lng: totalLng / validCenters }
+                : { lat: 33.94, lng: -118.41 }; // Fallback to LAX area
+            
+            console.log('Map center:', mapCenter, 'from', validCenters, 'valid centers');
+            
+            const map = new google.maps.Map(container, {
+                center: mapCenter,
+                zoom: 13,
+                mapTypeId: 'roadmap'
+            });
+            
+            const bounds = new google.maps.LatLngBounds();
+            let polygonCount = 0;
+            
+            // Render each H3 hexagon
+            h3Ids.forEach((h3Id, index) => {
+                try {
+                    const boundary = getH3Boundary(h3Id);
+                    const center = centers[index] || getH3Center(h3Id);
+                    
+                    let polygonCoords = null;
+                    
+                    if (boundary && Array.isArray(boundary) && boundary.length > 0) {
+                        // Use boundary from h3-js
+                        polygonCoords = boundary.map(coord => ({
+                            lat: coord[1], // GeoJSON [lng, lat] → Google Maps {lat, lng}
+                            lng: coord[0]
+                        }));
+                    } else if (center) {
+                        // Calculate approximate hexagon from center
+                        // H3 resolution 9 edge length ~174 meters
+                        const edgeLengthDegrees = 174 / 111000;
+                        polygonCoords = [];
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i * 60 - 30) * Math.PI / 180;
+                            const latOffset = edgeLengthDegrees * Math.cos(angle);
+                            const lngOffset = edgeLengthDegrees * Math.cos(center.lat * Math.PI / 180) * Math.sin(angle);
+                            polygonCoords.push({
+                                lat: center.lat + latOffset,
+                                lng: center.lng + lngOffset
+                            });
+                        }
+                        polygonCoords.push(polygonCoords[0]); // Close
+                    }
+                    
+                    if (polygonCoords && polygonCoords.length > 0) {
+                        polygonCoords.forEach(coord => bounds.extend(coord));
+                        
+                        new google.maps.Polygon({
+                            paths: polygonCoords,
+                            strokeColor: '#667eea',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            fillColor: '#667eea',
+                            fillOpacity: 0.35,
+                            map: map
+                        });
+                        
+                        polygonCount++;
+                    }
+                } catch (error) {
+                    console.error('Error rendering H3 ID', h3Id, ':', error);
+                }
+            });
+            
+            console.log('✅ Drew', polygonCount, 'hexagons for', containerId);
+            
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds);
+            }
+        }
+        
+    </script>
+    
+    <!-- Load Google Maps API AFTER initMaps is defined -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBYfjK5lAAP96uG_eIUR0m2lbWf3D69VPg&callback=initMaps" async defer></script>
+</body>
+</html>
