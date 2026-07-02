@@ -33,19 +33,19 @@
 </head><body>
 <header>
   <h1>Zone migration — sample renderings</h1>
-  <p>Visual reference for the 9 sample scenarios in <em>§10 Appendix — Sample renderings</em> of the zone-migration design doc, plus a country-clipping demo at El Paso for §5.4. Each row shows how the zones were generated (left), the rendered polygons over a real map (right), and per-zone H3 cell counts at the three compaction levels airports-msvc actually uses.</p>
+  <p>Visual reference for the finalized custom-delivery tiering (Option A bullseye rings at <strong>0–1 / 1–5 / 5–20 mi</strong>), plus Option B single-zone comparisons, a hotel-POI carve-out, incremental multi-home allocation, and a country-clipping demo at El Paso (§5.4). Each row shows how the zones were generated (left), the rendered polygons over a real map (right), and per-zone H3 cell counts at the three compaction levels airports-msvc actually uses.</p>
 </header>
 <div class="legend">
   <span><span class="swatch" style="background:#E63946"></span>POI / hotel tile</span>
-  <span><span class="swatch" style="background:#10B981"></span>Inner tier (≤ 3 mi)</span>
-  <span><span class="swatch" style="background:#3B82F6"></span>Mid tier (3–10 mi)</span>
-  <span><span class="swatch" style="background:#8B5CF6"></span>Outer tier (&gt; 10 mi)</span>
+  <span><span class="swatch" style="background:#10B981"></span>Tier 1 (0–1 mi)</span>
+  <span><span class="swatch" style="background:#3B82F6"></span>Tier 2 (1–5 mi)</span>
+  <span><span class="swatch" style="background:#8B5CF6"></span>Tier 3 (5–20 mi)</span>
   <span><span class="swatch" style="background:#F59E0B"></span>Option B single zone</span>
   <span><span class="swatch" style="background:#EC4899"></span>Second host home (inner)</span>
   <span><span class="swatch" style="background:#F97316"></span>Second host home (outer)</span>
 </div>
 <section class="sample">
-  <h2>S1 — Hotel / train-station POI (single res-9 tile)</h2>
+  <h2>N1 — Hotel / train-station POI (single res-9 tile)</h2>
   <div class="row">
     <div class="left">
       <p class="desc">One res-9 H3 tile centered on a hotel near LAX. This is the canonical mapping for hotels and train stations per §4 of the design doc — the zone owns exactly one tile, and any per-vehicle differences in fee / free-delivery / key-handoff become separate <code>DeliveryZoneSettings</code> rows under that single zone.</p>
@@ -57,119 +57,171 @@
       </table>
     </div>
     <div class="right">
-      <img src="S1_multizone.png" alt="S1 map"/>
+      <img src="N1_multizone.png" alt="N1 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S2 — Custom delivery, Option A bullseye, r ≈ 3 mi (1 ring)</h2>
+  <h2>N2 — Custom delivery, Option A bullseye, r ≈ 1 mi (1 ring)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Single host home in Santa Monica. r ≤ 3 mi falls in tier 1 of Option A so we emit only one zone covering the entire circle (color: green = inner tier).</p>
+      <p class="desc">Single host home in Santa Monica, r ≈ 1 mi. Falls entirely in tier 1 (0–1 mi), so Option A emits just one zone covering the whole circle (green).</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">626</td><td class="num">218</td><td class="num">110</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">71</td><td class="num">53</td><td class="num">29</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S2_multizone.png" alt="S2 map"/>
+      <img src="N2_multizone.png" alt="N2 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S3 — Custom delivery, Option A bullseye, r ≈ 7 mi (2 rings)</h2>
+  <h2>N3 — Custom delivery, Option A bullseye, r ≈ 5 mi (2 rings)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Same Santa Monica host with r ≈ 7 mi. Falls in tier 2 (3 < r ≤ 10) so we emit two concentric zones: the green ≤ 3 mi inner zone and the blue 3–7 mi outer ring. Reviewer takeaway: the migrator decides ring count purely from the legacy <code>vehicle_custom_delivery_distance</code> value.</p>
+      <p class="desc">Same Santa Monica host, r ≈ 5 mi. Spans tiers 1 and 2, so Option A emits two concentric zones: the green ≤ 1 mi inner disk and the blue 1–5 mi ring. The migrator picks ring count purely from the legacy <code>vehicle_custom_delivery_distance</code> value against the finalized 1 / 5 / 20 mi tier boundaries.</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">626</td><td class="num">218</td><td class="num">110</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Outer 3–7mi</td><td class="num">2775</td><td class="num">753</td><td class="num">465</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">71</td><td class="num">53</td><td class="num">29</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–5mi</td><td class="num">1663</td><td class="num">439</td><td class="num">271</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S3_multizone.png" alt="S3 map"/>
+      <img src="N3_multizone.png" alt="N3 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S4 — Custom delivery, Option A bullseye, r ≈ 15 mi (3 rings)</h2>
+  <h2>N4 — Custom delivery, Option B single zone, r ≈ 5 mi (1 ring)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Same host, r ≈ 15 mi → tier 3 (r &gt; 10) → three zones: green ≤ 3 mi, blue 3–10 mi, purple 10–15 mi.</p>
+      <p class="desc">Same host and radius as N3 (r ≈ 5 mi) but generated under Option B: one single zone covering the entire 5 mi disk. Compare cell counts to N3 to see the storage trade-off — one bigger zone vs two tier-aligned zones covering the same area.</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">626</td><td class="num">218</td><td class="num">110</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Mid 3–10mi</td><td class="num">6318</td><td class="num">990</td><td class="num">612</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#8B5CF6"></span>Outer 10–15mi</td><td class="num">8680</td><td class="num">1918</td><td class="num">1120</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 5mi</td><td class="num">1734</td><td class="num">360</td><td class="num">210</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S4_multizone.png" alt="S4 map"/>
+      <img src="N4_multizone.png" alt="N4 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S5 — Custom delivery, Option B single zone at r ≈ 15 mi</h2>
+  <h2>N5 — Custom delivery, Option A bullseye, r ≈ 20 mi (3 rings)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Same host as S4, but generated under Option B: one single zone covering the entire 15 mi disk regardless of radius. Compare cell counts to S4 to see the storage trade-off — Option B is one bigger zone, Option A is three smaller zones (which sum to roughly the same area).</p>
+      <p class="desc">Pasadena host, r ≈ 20 mi — the finalized maximum. Spans all three tiers, so Option A emits three rings: green ≤ 1 mi, blue 1–5 mi, purple 5–20 mi. This is the worst case for cell count and a good stress-test for §6.2 (ring splitting) and §5.4 (country clipping).</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 15mi</td><td class="num">15624</td><td class="num">1152</td><td class="num">678</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">68</td><td class="num">56</td><td class="num">26</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–5mi</td><td class="num">1659</td><td class="num">447</td><td class="num">279</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#8B5CF6"></span>Tier 3 5–20mi</td><td class="num">25921</td><td class="num">1969</td><td class="num">1189</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S5_multizone.png" alt="S5 map"/>
+      <img src="N5_multizone.png" alt="N5 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S6 — Custom delivery, Option A bullseye, r = 50 mi (3 rings)</h2>
+  <h2>N6 — Custom delivery, Option B single zone, r ≈ 20 mi (1 ring)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Pasadena host, r = 50 mi. Same Option A 3-ring layout as S4 but with the outer ring extending to 50 miles — this is the worst case for cell count and a good stress-test for §6.2 (ring splitting) and §5.4 (country clipping).</p>
+      <p class="desc">Same Pasadena host as N5, but Option B: one single 20 mi zone. Direct comparison to N5 — same area, different storage shape (one large zone vs three rings).</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">622</td><td class="num">214</td><td class="num">106</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Mid 3–10mi</td><td class="num">6311</td><td class="num">995</td><td class="num">635</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#8B5CF6"></span>Outer 10–50mi</td><td class="num">166502</td><td class="num">4700</td><td class="num">2924</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 20mi</td><td class="num">27648</td><td class="num">1530</td><td class="num">960</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S6_multizone.png" alt="S6 map"/>
+      <img src="N6_multizone.png" alt="N6 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S7 — Custom delivery, Option B single zone at r = 50 mi</h2>
+  <h2>N7 — Custom delivery, Option A bullseye, r ≈ 3 mi (2 rings)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Same Pasadena host as S6, but Option B: one single 50-mile zone. Direct comparison to S6 — same area, different storage shape.</p>
+      <p class="desc">Santa Monica host, r ≈ 3 mi. Because 3 mi lands inside tier 2, Option A emits two rings: green ≤ 1 mi and blue 1–3 mi (the outer ring is clipped to the host's actual radius, not the full 5 mi tier boundary).</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 50mi</td><td class="num">173435</td><td class="num">3911</td><td class="num">2405</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">71</td><td class="num">53</td><td class="num">29</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–3mi</td><td class="num">555</td><td class="num">291</td><td class="num">165</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S7_multizone.png" alt="S7 map"/>
+      <img src="N7_multizone.png" alt="N7 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S8 — Small custom-delivery zone with a hotel-POI tile carved out (donut)</h2>
+  <h2>N8 — Custom delivery, Option B single zone, r ≈ 3 mi (1 ring)</h2>
+  <div class="row">
+    <div class="left">
+      <p class="desc">Same host and radius as N7 (r ≈ 3 mi) under Option B: one single 3 mi zone. Compare to N7 for the two-ring vs single-zone trade-off at a short radius.</p>
+      <table class="counts">
+        <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
+        <tbody>
+<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 3mi</td><td class="num">626</td><td class="num">218</td><td class="num">110</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="right">
+      <img src="N8_multizone.png" alt="N8 map"/>
+    </div>
+  </div>
+</section>
+<section class="sample">
+  <h2>N9 — Custom delivery, Option A bullseye, r ≈ 10 mi (3 rings)</h2>
+  <div class="row">
+    <div class="left">
+      <p class="desc">Pasadena host, r ≈ 10 mi. Spans all three tiers, so Option A emits three rings: green ≤ 1 mi, blue 1–5 mi, purple 5–10 mi (the outer ring clipped to 10 mi rather than the full 20 mi tier boundary).</p>
+      <table class="counts">
+        <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
+        <tbody>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">68</td><td class="num">56</td><td class="num">26</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–5mi</td><td class="num">1659</td><td class="num">447</td><td class="num">279</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#8B5CF6"></span>Tier 3 5–10mi</td><td class="num">5183</td><td class="num">1163</td><td class="num">683</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="right">
+      <img src="N9_multizone.png" alt="N9 map"/>
+    </div>
+  </div>
+</section>
+<section class="sample">
+  <h2>N10 — Custom delivery, Option B single zone, r ≈ 10 mi (1 ring)</h2>
+  <div class="row">
+    <div class="left">
+      <p class="desc">Same host and radius as N9 (r ≈ 10 mi) under Option B: one single 10 mi zone. Direct comparison to N9.</p>
+      <table class="counts">
+        <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
+        <tbody>
+<tr><td><span class="swatch" style="background:#F59E0B"></span>Single 10mi</td><td class="num">6910</td><td class="num">754</td><td class="num">478</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="right">
+      <img src="N10_multizone.png" alt="N10 map"/>
+    </div>
+  </div>
+</section>
+<section class="sample">
+  <h2>N11 — Small custom-delivery zone with a hotel-POI tile carved out (donut)</h2>
   <div class="row">
     <div class="left">
       <p class="desc">Small custom-delivery zone (~25 res-9 tiles, roughly a ½-mile disk in West Hollywood) chosen specifically so the carve-out is visible at this zoom. A hotel POI tile (red) sits near the center and is allocated <em>first</em>; with <code>carveOutPriorZones=true</code> the orange custom-delivery zone excludes that tile, producing a donut with the hole exactly one res-9 hexagon wide. This demonstrates the §6.2 contiguity rule: the resulting zone is still one polygon (donuts are allowed by <code>validateHexConnectivity</code>), so it migrates as a single zone. A carve-out that split the zone into multiple polygons would instead need to be migrated as multiple zones.</p>
@@ -177,62 +229,62 @@
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
 <tr><td><span class="swatch" style="background:#E63946"></span>Hotel POI (carve-out)</td><td class="num">1</td><td class="num">1</td><td class="num">1</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#F59E0B"></span>Custom delivery zone</td><td class="num">24</td><td class="num">24</td><td class="num">24</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#F59E0B"></span>Custom delivery zone</td><td class="num">23</td><td class="num">23</td><td class="num">23</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S8_multizone.png" alt="S8 map"/>
+      <img src="N11_multizone.png" alt="N11 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S9 — Two host home addresses, overlapping radii (incremental allocation)</h2>
+  <h2>N12 — Two host home addresses, overlapping radii (incremental allocation)</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">Two host homes ~5 mi apart (Santa Monica + Beverly Hills), each with a 2-ring bullseye. Home1 is allocated first; home2's circles have any cells already taken by home1 carved out. This produces visibly asymmetric home2 zones — exactly the §6.3 scenario, and the reason we recommend ordering hosts by something deterministic (e.g. earliest custom-delivery creation date) rather than letting concurrency decide.</p>
+      <p class="desc">Two host homes ~5 mi apart (Santa Monica + Beverly Hills), each with a 2-ring (0–1, 1–3 mi) bullseye. Home1 is allocated first; home2's circles have any cells already taken by home1 carved out. This produces visibly asymmetric home2 zones — exactly the §6.3 scenario, and the reason we recommend ordering hosts by something deterministic (e.g. earliest custom-delivery creation date) rather than letting concurrency decide.</p>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Home1 inner ≤3mi</td><td class="num">626</td><td class="num">218</td><td class="num">110</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Home1 outer 3–7mi</td><td class="num">2775</td><td class="num">753</td><td class="num">465</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#EC4899"></span>Home2 inner ≤3mi</td><td class="num">264</td><td class="num">156</td><td class="num">84</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#F97316"></span>Home2 outer 3–7mi</td><td class="num">1645</td><td class="num">511</td><td class="num">325</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Home1 tier 1 ≤1mi</td><td class="num">71</td><td class="num">53</td><td class="num">29</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Home1 tier 2 1–3mi</td><td class="num">555</td><td class="num">291</td><td class="num">165</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#EC4899"></span>Home2 tier 1 ≤1mi</td><td class="num">67</td><td class="num">43</td><td class="num">43</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#F97316"></span>Home2 tier 2 1–3mi</td><td class="num">403</td><td class="num">229</td><td class="num">127</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right">
-      <img src="S9_multizone.png" alt="S9 map"/>
+      <img src="N12_multizone.png" alt="N12 map"/>
     </div>
   </div>
 </section>
 <section class="sample">
-  <h2>S10 — Country-clipping demo (El Paso, 50 mi bullseye) — unclipped vs clipped</h2>
+  <h2>N13 — Country-clipping demo (El Paso, 20 mi bullseye) — unclipped vs clipped</h2>
   <div class="row">
     <div class="left">
-      <p class="desc">El Paso host, 50 mi Option A bullseye. <strong>Left:</strong> raw cells — note how the outer ring crosses the Rio Grande into Mexico. <strong>Right:</strong> after running each cell's center through the regional US polygon, all cells south of the border are dropped. The drop count appears under each ring as <code>clipped-out</code>. This is what §5.4's <code>clipToCountry</code> step would produce in the migration.</p>
+      <p class="desc">El Paso host, 20 mi Option A bullseye. <strong>Left:</strong> raw cells — note how the outer ring crosses the Rio Grande into Mexico. <strong>Right:</strong> after running each cell's center through the regional US polygon, all cells south of the border are dropped. The drop count appears under each ring as <code>clipped-out</code>. This is what §5.4's <code>clipToCountry</code> step would produce in the migration.</p>
       <h3 style="margin-top:1em">Unclipped (raw cells)</h3>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">596</td><td class="num">212</td><td class="num">122</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Mid 3–10mi</td><td class="num">5985</td><td class="num">1023</td><td class="num">567</td><td class="num">—</td></tr>
-<tr><td><span class="swatch" style="background:#8B5CF6"></span>Outer 10–50mi</td><td class="num">158061</td><td class="num">4623</td><td class="num">2847</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">66</td><td class="num">48</td><td class="num">36</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–5mi</td><td class="num">1576</td><td class="num">406</td><td class="num">274</td><td class="num">—</td></tr>
+<tr><td><span class="swatch" style="background:#8B5CF6"></span>Tier 3 5–20mi</td><td class="num">24621</td><td class="num">1827</td><td class="num">1215</td><td class="num">—</td></tr>
         </tbody>
       </table>
       <h3 style="margin-top:1em">Clipped to US polygon</h3>
       <table class="counts">
         <thead><tr><th>Zone</th><th>res-9</th><th>edge-aware<br/>(res 5–9)</th><th>full<br/>(res 5)</th><th>clipped-out</th></tr></thead>
         <tbody>
-<tr><td><span class="swatch" style="background:#10B981"></span>Inner ≤3mi</td><td class="num">382</td><td class="num">160</td><td class="num">112</td><td class="num">214</td></tr>
-<tr><td><span class="swatch" style="background:#3B82F6"></span>Mid 3–10mi</td><td class="num">3590</td><td class="num">752</td><td class="num">428</td><td class="num">2395</td></tr>
-<tr><td><span class="swatch" style="background:#8B5CF6"></span>Outer 10–50mi</td><td class="num">98604</td><td class="num">3870</td><td class="num">2310</td><td class="num">59457</td></tr>
+<tr><td><span class="swatch" style="background:#10B981"></span>Tier 1 ≤1mi</td><td class="num">59</td><td class="num">47</td><td class="num">35</td><td class="num">7</td></tr>
+<tr><td><span class="swatch" style="background:#3B82F6"></span>Tier 2 1–5mi</td><td class="num">939</td><td class="num">309</td><td class="num">207</td><td class="num">637</td></tr>
+<tr><td><span class="swatch" style="background:#8B5CF6"></span>Tier 3 5–20mi</td><td class="num">15043</td><td class="num">1453</td><td class="num">967</td><td class="num">9578</td></tr>
         </tbody>
       </table>
     </div>
     <div class="right two-up">
-      <figure><img src="S10a_unclipped_multizone.png" alt="S10 unclipped"/><figcaption>Unclipped</figcaption></figure>
-      <figure><img src="S10b_clipped_multizone.png" alt="S10 clipped"/><figcaption>Clipped</figcaption></figure>
+      <figure><img src="N13a_unclipped_multizone.png" alt="N13 unclipped"/><figcaption>Unclipped</figcaption></figure>
+      <figure><img src="N13b_clipped_multizone.png" alt="N13 clipped"/><figcaption>Clipped</figcaption></figure>
     </div>
   </div>
 </section>
